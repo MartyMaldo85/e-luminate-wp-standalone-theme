@@ -1,0 +1,21 @@
+{
+	"name": "eluminate-standalone",
+	"version": "0.0.1",
+	"description": "e-Luminate Stand Alone Theme for WordPress",
+	"keywords": [
+		"WordPress",
+		"Theme"
+	],
+	"engines": {
+		"node": ">=20.10.0",
+		"npm": ">=10.2.3"
+	},
+	"devDependencies": {
+		"@wordpress/browserslist-config": "^6.34.0",
+		"prettier": "^3.7.4"
+	},
+	"browserslist": [
+		"extends @wordpress/browserslist-config"
+	],
+	"scripts": {}
+}

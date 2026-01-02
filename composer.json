@@ -1,0 +1,45 @@
+{
+	"name": "nazarioa/eluminate-standalone-theme",
+	"type": "wordpress-theme",
+	"description": "For E-Luminate",
+	"keywords": [
+		"nazarioa",
+		"theme",
+		"wordpress",
+		"wordpress-theme"
+	],
+	"homepage": "https://github.com/nazarioa/e-luminate-wp-theme",
+	"require": {
+		"composer/installers": "^2.0",
+		"php": ">=8.2"
+	},
+	"require-dev": {
+		"codeception/codeception": "^5.3",
+		"wp-coding-standards/wpcs": "^3.0"
+	},
+	"authors": [
+		{
+			"name": "Nazario A. Ayala",
+			"email": "nazario@niztech.com"
+		}
+	],
+	"config": {
+		"allow-plugins": {
+			"composer/installers": true,
+			"dealerdirect/phpcodesniffer-composer-installer": true
+		}
+	},
+	"scripts": {
+		"lint": [
+			"vendor/bin/phpcs  -ns .",
+			"./node_modules/.bin/prettier . --check"
+		],
+		"lint-fix": [
+			"vendor/bin/phpcbf",
+			"./node_modules/.bin/prettier . --write"
+		],
+		"build-prod": "./build.sh",
+		"build-dev": "composer install"
+	},
+	"minimum-stability": "dev"
+}

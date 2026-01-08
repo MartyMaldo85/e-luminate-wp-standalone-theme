@@ -15,7 +15,7 @@
 	<exclude-pattern>*/node_modules/*</exclude-pattern>
 	<exclude-pattern>*/vendor/*</exclude-pattern>
 
-	<!-- I cannot get file comments to be regsitered -->
+	<!-- I cannot get file comments to be registered -->
 	<rule ref="Squiz.Commenting.FileComment.Missing">
 		<exclude-pattern>.</exclude-pattern>
 	</rule>

@@ -570,3 +570,5 @@ if ( ! function_exists( 'eluminate_online_register_post_type_init' ) ) {
 		remove_post_type_support( 'video_series', 'comments' );
 	}
 }
+
+remove_action( 'wp_head', 'wp_generator' );

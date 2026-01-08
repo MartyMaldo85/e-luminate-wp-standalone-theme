@@ -8,58 +8,11 @@
  Version:      0.0.1
  Text Domain:  eluminate-standalone
 */
-
-body {
-	font-family: Arial, sans-serif;
-	margin: 0;
-	padding: 0;
-}
-
-.layout-body {
-	display: grid;
-	grid-template-areas:
-		"logo nav nav nav"
-		"content content content content "
-		"footer footer footer footer ";
-	grid-template-columns: 200px 400px 400px 200px;
-	grid-template-rows: min-content auto min-content;
-	justify-content: center;
-	min-height: 100vh;
-	position: relative;
-	width: 100%;
-}
-
-.body-header {
-	grid-area: logo;
-	background-color: orange;
-}
-
-.body-nav {
-	grid-area: nav;
-	background-color: #e4e4e4;
-	padding: 10px;
-}
-
-.body-page {
-	background-color: pink;
-	display: grid;
-	gap: 1rem;
-	grid-area: content;
-	grid-template-columns: 1fr 3fr 1fr;
-	grid-template-rows: auto;
-	padding: 2rem 0;
-
-	.page-main {
-		background-color: antiquewhite;
-		grid-column: 2 / 3;
-	}
-
-	.page-related {
-		background-color: indianred;
-	}
-}
-
-.layout-footer {
-	background-color: lightblue;
-	grid-area: footer;
-}
+@import "./styles/base.css";
+@import "./styles/utility.css";
+@import "./styles/layout.css";
+@import "./styles/menu.css";
+@import "./styles/background.css";
+@import "./styles/page-video_series.css";
+@import "./styles/page-front_page.css";
+@import "./styles/page-recent.css";

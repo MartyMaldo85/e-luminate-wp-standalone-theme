@@ -1,0 +1,21 @@
+body .background {
+	background-color: var(--secondary-color);
+	display: block;
+	height: 20rem;
+	position: absolute;
+	top: 0;
+	width: 100%;
+	z-index: -1;
+
+	.bk-gradient {
+		background-image: linear-gradient(
+			to top,
+			rgba(255, 255, 255, 0),
+			rgba(255, 255, 255, 1)
+		);
+		top: 0;
+		bottom: 0;
+		position: absolute;
+		width: 100%;
+	}
+}

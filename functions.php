@@ -14,13 +14,13 @@
 const THEME_KEY     = 'eluminate-standalone';
 const THEME_VERSION = 1;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 if ( class_exists( 'Niztech_Youtube' ) ) {
 	$path_to_plugins = join( DIRECTORY_SEPARATOR, array( WP_PLUGIN_DIR, 'niztech-youtube', 'class-niztech-youtube-client.php' ) );
 	include_once $path_to_plugins;
-}
-
-if ( ! defined( 'ABSPATH' ) ) {
-	exit;
 }
 
 if ( ! isset( $content_width ) ) {

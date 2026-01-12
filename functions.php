@@ -226,15 +226,13 @@ add_shortcode(
 		// Get the data.
 		$data = eluminate_recent_video_series_data( $a['limit'] );
 		// Generate the html.
-		print_r(
-			eluminate_video_series_recent_html(
-				$data,
-				array(
-					'class'       => $a['class'],
-					'hide_others' => $a['hide_others'],
-					'hide_title'  => $a['hide_title'],
-					'id'          => $a['id'],
-				)
+		return eluminate_video_series_recent_html(
+			$data,
+			array(
+				'class'       => $a['class'],
+				'hide_others' => $a['hide_others'],
+				'hide_title'  => $a['hide_title'],
+				'id'          => $a['id'],
 			)
 		);
 	}

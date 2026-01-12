@@ -4,12 +4,11 @@
 	gap: 20px;
 	grid-template-areas:
 		". logo logo ."
-		".  nav nav ."
-		"sub-nav sub-nav sub-nav sub-nav"
+		"nav nav nav nav"
 		"content content content content "
 		"footer footer footer footer ";
 	grid-template-columns: 200px 400px 400px 200px;
-	grid-template-rows: min-content min-content min-content auto min-content;
+	grid-template-rows: min-content min-content auto min-content;
 	justify-content: center;
 	min-height: 100vh;
 	padding-bottom: 2rem;
@@ -108,11 +107,10 @@
 
 	.layout-body {
 		grid-template-columns: 400px;
-		grid-template-rows: min-content min-content min-content min-content min-content;
+		grid-template-rows: min-content min-content min-content min-content;
 		grid-template-areas:
 			"logo"
 			"nav"
-			"sub-nav"
 			"content"
 			"footer";
 

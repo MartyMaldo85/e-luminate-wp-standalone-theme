@@ -1,4 +1,5 @@
 .body-nav {
+	position: relative;
 	align-self: end;
 	box-sizing: border-box;
 	column-gap: 2rem;
@@ -23,39 +24,51 @@
 }
 
 #body-sub-nav {
-	grid-area: sub-nav;
+	position: absolute;
+	top: 2.9rem;
 
 	.menu {
-		background-color: var(--tertiary-color);
+		background-color: rgba(255, 255, 255, 0.85);
+		backdrop-filter: blur(5px);
 		border-radius: var(--border-radius);
 		box-sizing: border-box;
-		font-size: 1.3rem;
-		font-weight: 500;
+		box-shadow: 0 5px 20px var(--primary-color-dark);
 		max-height: 0;
 		overflow: hidden;
 		transition: max-height 0.15s ease-out;
 
-		section {
-			padding: 1rem;
+		.title {
+			border-bottom: 1px solid var(--secondary-color);
+			font-family: var(--slab-font);
+			font-size: 1rem;
+			margin: 0.5rem 0;
+			padding: 0.5rem;
 		}
 
-		.title {
-			font-size: 0.8rem;
-			font-weight: normal;
-			margin-bottom: 0.5rem;
+		.menu-item {
+			font-size: 1.1rem;
+			font-family: var(--font);
+			padding: 0.4rem 0.5rem;
+
+			&:hover {
+				border-radius: calc(var(--border-radius) / 2);
+				background-color: var(--primary-color);
+				a {
+					color: var(--tertiary-color);
+					text-decoration: none;
+				}
+			}
 		}
 
 		ul {
 			list-style: none;
-			li {
-				margin-bottom: 0.5rem;
-			}
 		}
 	}
 
 	.menu.active {
-		max-height: 9rem;
+		max-height: 500px;
 		transition: max-height 0.15s ease-in;
+		padding: 0 1rem 1rem 1rem;
 
 		&.about-us {
 			display: block;
@@ -64,29 +77,17 @@
 		&.list-in {
 			display: flex;
 			flex-direction: row;
+			column-gap: 1rem;
 		}
 	}
 
 	.menu {
 		&.list-in {
-			.shows {
-				flex-basis: 20%;
-			}
-
 			.topic {
-				flex-basis: 80%;
-				flex-grow: 1;
-				font-size: 0.8rem;
-				font-weight: 500;
-
 				.menu-list {
-					columns: 4;
+					columns: 2;
 				}
 			}
-		}
-
-		&.about-us {
-			font-size: 1rem;
 		}
 	}
 }

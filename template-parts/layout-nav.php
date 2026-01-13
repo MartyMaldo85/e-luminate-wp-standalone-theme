@@ -23,8 +23,8 @@
 
 	<div id="body-sub-nav">
 		<div class="about-us menu">
-			<h2 class="title"><?php echo __( 'Page', 'eluminate-standalone' ); ?></h2>
 			<section>
+				<h2 class="title"><?php echo __( 'Page', 'eluminate-standalone' ); ?></h2>
 				<?php
 				wp_nav_menu(
 					array(

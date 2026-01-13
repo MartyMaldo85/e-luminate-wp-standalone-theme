@@ -28,7 +28,6 @@
 
 	.logo {
 		width: 45px;
-		height: 45px;
 
 		animation-name: scale-on-scroll;
 		animation-duration: 1ms;

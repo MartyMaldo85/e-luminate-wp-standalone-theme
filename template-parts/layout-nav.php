@@ -23,6 +23,7 @@
 
 	<div id="body-sub-nav">
 		<div class="about-us menu">
+			<button class="btn btn-close" onclick="toggle('')"><span class="visually-hidden"><?php echo __( 'close', 'eluminate-standalone' ); ?></span></button>
 			<section>
 				<h2 class="title"><?php echo __( 'Page', 'eluminate-standalone' ); ?></h2>
 				<?php
@@ -39,6 +40,7 @@
 			</section>
 		</div>
 		<div class="list-in menu">
+			<button class="btn btn-close" onclick="toggle('')"><span class="visually-hidden"><?php echo __( 'close', 'eluminate-standalone' ); ?></span></button>
 			<section class="shows">
 				<h2 class="title"><?php echo __( 'View', 'eluminate-standalone' ); ?></h2>
 				<?php

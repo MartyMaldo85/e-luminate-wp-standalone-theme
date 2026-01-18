@@ -1,6 +1,13 @@
 .editorconfig
 .idea/
+.prettierignore
+_NOTES/
 build/
+composer.json
+composer.lock
 dist/
-phpcs.xml.dis
+package-lock.json
+package.json
+phpcs.xml.dist
 test/
+vendor/

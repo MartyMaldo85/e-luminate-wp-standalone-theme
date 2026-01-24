@@ -617,3 +617,39 @@ add_action(
 );
 
 remove_action( 'wp_head', 'wp_generator' );
+
+add_action(
+	'customize_register',
+	function ( $wp_customize ) {
+		// Add a new section for footer settings.
+		$wp_customize->add_section(
+			'eluminate_standalone_global_settings',
+			array(
+				'title'    => __( 'Global settings', 'eluminate-standalone' ),
+				'priority' => 120,
+			)
+		);
+
+		// Add setting for footer text.
+		$wp_customize->add_setting(
+			'eluminate_standalone_mailing_address',
+			array(
+				'default'           => '',
+				'sanitize_callback' => 'wp_kses_post', // Allows basic HTML.
+				'transport'         => 'refresh',
+			)
+		);
+
+		// Add control for the footer text.
+		$wp_customize->add_control(
+			'eluminate_standalone_mailing_address_control',
+			array(
+				'label'       => __( 'Mailing address', 'eluminate-standalone' ),
+				'description' => __( 'will show in the footer', 'eluminate-standalone' ),
+				'section'     => 'eluminate_standalone_global_settings',
+				'settings'    => 'eluminate_standalone_mailing_address',
+				'type'        => 'textarea',
+			)
+		);
+	}
+);

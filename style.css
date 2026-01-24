@@ -11,6 +11,7 @@
 @import "./styles/base.css";
 @import "./styles/utility.css";
 @import "./styles/layout.css";
+@import "./styles/layout-footer.css";
 @import "./styles/menu.css";
 @import "./styles/background.css";
 @import "./styles/page-video_series.css";

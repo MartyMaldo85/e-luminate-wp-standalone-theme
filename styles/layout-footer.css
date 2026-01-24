@@ -1,0 +1,90 @@
+.layout-footer {
+	background-color: var(--primary-color-light);
+	border-bottom-left-radius: var(--border-radius);
+	border-bottom-right-radius: var(--border-radius);
+	box-sizing: border-box;
+	display: grid;
+	grid-area: footer;
+	padding: 0.5rem 1rem;
+	grid-template-rows: min-content min-content min-content min-content;
+	grid-template-columns: repeat(2, 1fr);
+	grid-gap: 1rem;
+	color: var(--tertiary-color);
+
+	ul {
+		box-sizing: border-box;
+		list-style: none;
+
+		li {
+			display: inline-block;
+			margin-right: 0.5rem;
+
+			&::after {
+				margin-left: 0.5rem;
+				content: "•";
+			}
+
+			&:last-of-type {
+				margin-right: 0;
+
+				&::after {
+					content: "";
+				}
+			}
+		}
+	}
+
+	a {
+		color: var(--tertiary-color);
+	}
+
+	.footer-title {
+		font-family: var(--slab-font), serif;
+		text-transform: uppercase;
+		font-size: 1.3rem;
+		grid-column: 1/3;
+		grid-row: 1/1;
+	}
+
+	address {
+		font-style: normal;
+		text-decoration: none;
+	}
+
+	.logos {
+		color: white;
+		grid-column: 2/3;
+		grid-row: 2/2;
+		justify-self: self-end;
+
+		.sorop-novato {
+			width: 112px;
+			margin-right: 1rem;
+		}
+
+		.sorop-international {
+			width: 100px;
+			margin-right: 0.5rem;
+		}
+	}
+
+	.footer-menu {
+		grid-column: 2/3;
+		grid-row: 4/4;
+		justify-self: self-end;
+	}
+
+	.break {
+		border-top: 1px solid white;
+		display: block;
+		grid-column: 1/3;
+		grid-row: 3/3;
+		height: 2px;
+	}
+
+	.copyright {
+		grid-column: 1/2;
+		grid-row: 4/4;
+		justify-self: self-start;
+	}
+}

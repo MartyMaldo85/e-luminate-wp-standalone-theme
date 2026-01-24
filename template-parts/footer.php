@@ -1,12 +1,14 @@
-<?php
-$logo = implode( DIRECTORY_SEPARATOR, array( get_template_directory_uri(), 'assets', 'soroptimist-logo.svg' ) )
-?>
-
 <footer class="layout-footer">
-	<img src="<?php echo $logo; ?>" alt="" width="37" height="66" class="sorop-logo"/>
-	<div>
-		<p>Soroptimist International of Novato &copy; <?php echo gmdate( 'Y' ); ?></p>
+	<h4 class="footer-title"><?php echo __( 'Contact us', 'eluminate-standalone' ); ?></h4>
+	<div class="footer-contact">
 		<?php
+		$mailing_address = get_theme_mod( 'eluminate_standalone_mailing_address' );
+		if ( ! empty( $mailing_address ) ) {
+			echo '<address class="mailing-address">';
+			echo wp_kses_post( $mailing_address );
+			echo '</address>';
+		}
+
 		wp_nav_menu(
 			array(
 				'class'          => 'social',
@@ -15,14 +17,23 @@ $logo = implode( DIRECTORY_SEPARATOR, array( get_template_directory_uri(), 'asse
 				'menu'           => 'social',
 			)
 		);
-		wp_nav_menu(
-			array(
-				'class'          => 'footer',
-				'theme_location' => 'footer',
-				'container'      => false,
-				'menu'           => 'footer',
-			)
-		);
 		?>
 	</div>
+
+	<?php
+	wp_nav_menu(
+		array(
+			'menu_class'     => 'footer-menu',
+			'theme_location' => 'footer',
+			'container'      => false,
+			'menu'           => 'footer',
+		)
+	);
+	?>
+	<div class="logos">
+		<?php get_template_part( 'assets/soroptimist-international-of-novato-logo-mono' ); ?>
+		<?php get_template_part( 'assets/soroptimist-international-logo-mono' ); ?>
+	</div>
+	<p class="copyright">&copy; <?php echo gmdate( 'Y' ); ?> Soroptimist International of Novato </p>
+	<div class="break">&nbsp;</div>
 </footer>

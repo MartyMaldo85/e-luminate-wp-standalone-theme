@@ -6,8 +6,7 @@
 	display: grid;
 	grid-area: footer;
 	padding: 0.5rem 1rem;
-	grid-template-rows: min-content min-content min-content min-content;
-	grid-template-columns: repeat(2, 1fr);
+	grid-template-areas: 'title title' 'contact logos' 'break break' 'copy menu';
 	grid-gap: 1rem;
 	color: var(--tertiary-color);
 
@@ -40,21 +39,20 @@
 
 	.footer-title {
 		font-family: var(--slab-font), serif;
-		text-transform: uppercase;
 		font-size: 1.3rem;
-		grid-column: 1/3;
-		grid-row: 1/1;
+		grid-area: title;
+		text-transform: uppercase;
 	}
 
 	address {
 		font-style: normal;
+		grid-area: contact;
 		text-decoration: none;
 	}
 
 	.logos {
 		color: white;
-		grid-column: 2/3;
-		grid-row: 2/2;
+		grid-area: logos;
 		justify-self: self-end;
 
 		.sorop-novato {
@@ -69,22 +67,37 @@
 	}
 
 	.footer-menu {
-		grid-column: 2/3;
-		grid-row: 4/4;
+		grid-area: menu;
 		justify-self: self-end;
 	}
 
 	.break {
 		border-top: 1px solid white;
 		display: block;
-		grid-column: 1/3;
-		grid-row: 3/3;
+		grid-area: break;
 		height: 2px;
 	}
 
 	.copyright {
-		grid-column: 1/2;
-		grid-row: 4/4;
+		grid-area: copy;
 		justify-self: self-start;
 	}
+}
+
+
+@media (width <= 900px) {
+	.layout-footer {
+		grid-template-areas: 'title' 'contact' 'logos' 'break' 'menu' 'copy';
+		grid-template-columns: 1fr;
+		grid-template-rows: repeat(6, min-content);
+
+		.footer-menu {
+			justify-self: center;
+		}
+
+		.logos {
+			justify-self: center;
+		}
+	}
+
 }

@@ -6,7 +6,7 @@
 	display: grid;
 	grid-area: footer;
 	padding: 0.5rem 1rem;
-	grid-template-areas: 'title title' 'contact logos' 'break break' 'copy menu';
+	grid-template-areas: "title title" "contact logos" "break break" "copy menu";
 	grid-gap: 1rem;
 	color: var(--tertiary-color);
 
@@ -84,10 +84,9 @@
 	}
 }
 
-
 @media (width <= 900px) {
 	.layout-footer {
-		grid-template-areas: 'title' 'contact' 'logos' 'break' 'menu' 'copy';
+		grid-template-areas: "title" "contact" "logos" "break" "menu" "copy";
 		grid-template-columns: 1fr;
 		grid-template-rows: repeat(6, min-content);
 
@@ -99,5 +98,4 @@
 			justify-self: center;
 		}
 	}
-
 }

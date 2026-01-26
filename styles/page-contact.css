@@ -27,6 +27,12 @@
 			}
 		}
 		input {
+			/*
+			Assumed contact form 7 has been modified.
+			modules/text.php -> remove size attribute
+			*/
+			box-sizing: border-box;
+			width: 100%;
 			border-bottom: 1px solid var(--primary-color-dark);
 		}
 	}

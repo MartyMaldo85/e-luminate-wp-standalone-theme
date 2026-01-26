@@ -1,0 +1,67 @@
+.wpcf7-form {
+	label {
+		background-color: var(--secondary-color-light);
+		border-radius: var(--border-radius);
+		border: 1px solid var(--secondary-color);
+		color: var(--primary-color-dark);
+		display: block;
+		font-family: var(--slab-font), serif;
+		font-size: 1rem;
+		margin-bottom: 1rem;
+		margin-top: 1rem;
+		padding: 1rem;
+	}
+
+	.wpcf7-form-control-wrap {
+		display: block;
+		input,
+		textarea {
+			background-color: unset;
+			border: none;
+			color: var(--primary-color-dark);
+			font-family: var(--font), sans-serif;
+			font-size: 1rem;
+			padding: 0.5rem;
+			&:focus {
+				background-color: #ffffff;
+			}
+		}
+		input {
+			border-bottom: 1px solid var(--primary-color-dark);
+		}
+	}
+
+	input[type="submit"] {
+		all: unset;
+		background-color: var(--primary-color-light);
+		border-radius: var(--border-radius);
+		color: #ffffff;
+		font-family: var(--slab-font), serif;
+		font-size: 1rem;
+		padding: 1rem;
+		text-transform: uppercase;
+		border: 1px solid var(--secondary-color);
+		&:hover {
+			color: var(--primary-color-dark);
+			background-color: unset;
+		}
+	}
+}
+
+.wpcf7 form {
+	.wpcf7-response-output {
+		border-radius: var(--border-radius);
+		margin-left: 0;
+		margin-right: 0;
+		padding: 1rem;
+	}
+
+	&.invalid .wpcf7-response-output {
+		background-color: #ffb900;
+	}
+
+	&.sent .wpcf7-response-output {
+		color: white;
+		background-color: #12ab3d;
+	}
+}

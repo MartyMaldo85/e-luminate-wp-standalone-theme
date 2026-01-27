@@ -27,16 +27,15 @@
 	}
 
 	.logo {
-		width: 45px;
+		width: 540px;
 
 		animation-name: scale-on-scroll;
 		animation-duration: 1ms;
 		animation-fill-mode: both;
 		animation-timeline: view();
 
-		margin-top: 3rem;
-		margin-bottom: 2rem;
-		padding-top: 1rem;
+        margin-top: -4rem;
+        margin-bottom: 60rem;
 	}
 }
 
@@ -93,20 +92,29 @@
 }
 
 @keyframes scale-on-scroll {
-	90% {
-		margin-bottom: 11rem;
-		transform: scale(8);
+	60% {
+		transform: scale(1);
 		opacity: 1;
+    }
+    80% {
+		opacity: 1;
+	}
+    85% {
+		opacity: .25;
+	}
+    90% {
+		opacity: 0;
 	}
 	93% {
-		opacity: 1;
+		opacity: 0;
 	}
-	99% {
-		opacity: 0.5;
+	95% {
+		opacity: 0;
 	}
 	100% {
-		opacity: 0.5;
-		transform: scale(2);
+		transform: scale(.25);
+        opacity: 0;
+        margin-bottom: -8rem;
 	}
 }
 
@@ -148,21 +156,30 @@
 	}
 
 	@keyframes scale-on-scroll {
-		90% {
-			margin-bottom: 7rem;
-			transform: scale(5);
-			opacity: 1;
-		}
-		93% {
-			opacity: 1;
-		}
-		99% {
-			opacity: 0.5;
-		}
-		100% {
-			opacity: 0.5;
-			transform: scale(1);
-		}
+		60% {
+		    transform: scale(.75);
+		    opacity: 1;
+        }
+        80% {
+		    opacity: 1;
+	    }
+        85% {
+		    opacity: .25;
+	    }
+        90% {
+		    opacity: 0;
+	    }
+	    93% {
+		opacity: 0;
+	    }
+	    95% {
+		    opacity: 0;
+	    }
+	    100% {
+		    transform: scale(.15);
+            opacity: 0;
+            margin-bottom: -6rem;
+	    }
 	}
 }
 

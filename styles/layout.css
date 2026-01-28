@@ -34,7 +34,7 @@
 		animation-fill-mode: both;
 		animation-timeline: view();
 
-        margin-top: -4rem;
+		margin-top: -6rem;
         margin-bottom: 60rem;
 	}
 }
@@ -94,22 +94,12 @@
 @keyframes scale-on-scroll {
 	60% {
 		transform: scale(1);
-		opacity: 1;
     }
     80% {
 		opacity: 1;
 	}
     85% {
 		opacity: .25;
-	}
-    90% {
-		opacity: 0;
-	}
-	93% {
-		opacity: 0;
-	}
-	95% {
-		opacity: 0;
 	}
 	100% {
 		transform: scale(.25);
@@ -156,31 +146,21 @@
 	}
 
 	@keyframes scale-on-scroll {
-		60% {
-		    transform: scale(.75);
-		    opacity: 1;
+    	60% {
+    		transform: scale(.75);
         }
         80% {
-		    opacity: 1;
-	    }
+    		opacity: 1;
+    	}
         85% {
-		    opacity: .25;
-	    }
-        90% {
-		    opacity: 0;
-	    }
-	    93% {
-		opacity: 0;
-	    }
-	    95% {
-		    opacity: 0;
-	    }
-	    100% {
-		    transform: scale(.15);
+    		opacity: .25;
+    	}
+    	100% {
+    		transform: scale(.2);
             opacity: 0;
-            margin-bottom: -6rem;
-	    }
-	}
+            margin-bottom: -10rem;
+    	}
+    }
 }
 
 @media (width <= 375px) {

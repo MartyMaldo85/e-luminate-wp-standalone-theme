@@ -18,4 +18,4 @@ array_push( $css_class, 'layout-body' )
 	<?php wp_head(); ?>
 </head>
 <body>
-<div <?php post_class( implode( ' ', $css_class ) ); ?>">
+<div <?php post_class( implode( ' ', $css_class ) ); ?>>

@@ -1,0 +1,17 @@
+name: Lint Code
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Install dependencies
+        uses: php-actions/composer@master
+      - name: Validate dependencies
+        uses: php-actions/composer@master
+        with:
+          command: lint

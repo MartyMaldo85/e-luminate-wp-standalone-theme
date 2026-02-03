@@ -18,10 +18,12 @@
 		textarea {
 			background-color: unset;
 			border: none;
+			box-sizing: border-box !important;
 			color: var(--primary-color-dark);
 			font-family: var(--font), sans-serif;
 			font-size: 1rem;
 			padding: 0.5rem;
+			width: 100% !important;
 			&:focus {
 				background-color: #ffffff;
 			}

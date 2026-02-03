@@ -70,7 +70,6 @@ add_action(
 		* If you're building a theme based on twentyfifteen, use a find and replace
 		* to change 'twentyfifteen' to the name of your theme in all the template files
 		*/
-		// load_theme_textdomain( 'eluminate-standalone' );
 
 		/*
 		* Let WordPress manage the document title.

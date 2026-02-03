@@ -11,10 +11,10 @@
 	grid-template-rows: min-content min-content auto min-content;
 	justify-content: center;
 	min-height: 100vh;
+	overflow-x: clip;
 	padding: 0 auto 2rem;
 	position: relative;
 	width: 100%;
-    overflow-x: clip;
 }
 
 .body-header {

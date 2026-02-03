@@ -27,15 +27,12 @@
 	}
 
 	.logo {
-		width: 540px;
-
-		animation-name: scale-on-scroll;
 		animation-duration: 1ms;
 		animation-fill-mode: both;
 		animation-name: scale-on-scroll;
 		animation-timeline: view();
-
 		margin: -6rem auto 60rem;
+		width: 540px;
 	}
 }
 

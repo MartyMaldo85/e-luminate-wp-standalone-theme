@@ -1,3 +1,5 @@
+.DS_Store
+.github/
 build/
 vendor/
-node_mdules/
+node_modules/

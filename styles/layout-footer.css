@@ -5,8 +5,9 @@
 	box-sizing: border-box;
 	display: grid;
 	grid-area: footer;
+	grid-column: var(--content-col-start) / var(--content-col-end);
 	padding: 0.5rem 1rem;
-	grid-template-areas: "title title" "contact logos" "break break" "copy menu";
+	grid-template-areas: "title title" "logos logos" "break break" "copy menu";
 	grid-gap: 1rem;
 	color: var(--tertiary-color);
 
@@ -37,17 +38,11 @@
 		color: var(--tertiary-color);
 	}
 
-	.footer-title {
-		font-family: var(--slab-font), serif;
-		font-size: 1.3rem;
+	/* Mailing block: same typography as .copyright (inherits from .layout-footer). */
+	.copyright.copyright--mailing {
 		grid-area: title;
-		text-transform: uppercase;
-	}
-
-	address {
-		font-style: normal;
-		grid-area: contact;
-		text-decoration: none;
+		justify-self: self-start;
+		margin: 0;
 	}
 
 	.logos {
@@ -81,14 +76,15 @@
 	.copyright {
 		grid-area: copy;
 		justify-self: self-start;
+		margin: 0;
 	}
 }
 
 @media (width <= 900px) {
 	.layout-footer {
-		grid-template-areas: "title" "contact" "logos" "break" "menu" "copy";
+		grid-template-areas: "title" "logos" "break" "menu" "copy";
 		grid-template-columns: 1fr;
-		grid-template-rows: repeat(6, min-content);
+		grid-template-rows: repeat(5, min-content);
 
 		.footer-menu {
 			justify-self: center;

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" id="Layer_1" x="0" y="0" version="1.1" viewBox="0 0 42 42">
+<style>
+.st0{fill:#005db0}
+.orbit-dots{
+	transform-box:view-box;
+	transform-origin:50% 50%;
+	transition:transform .32s ease;
+}
+svg:hover .orbit-dots{
+	transform:rotate(180deg);
+}
+</style>
+<g class="orbit-dots">
+	<circle cx="4.2" cy="21" r="4.2" class="st0"/>
+	<circle cx="37.8" cy="21" r="4.2" class="st0"/>
+	<circle cx="12.6" cy="35.5" r="4.2" class="st0"/>
+	<circle cx="29.4" cy="6.5" r="4.2" class="st0"/>
+	<circle cx="29.4" cy="35.5" r="4.2" class="st0"/>
+	<circle cx="12.6" cy="6.5" r="4.2" class="st0"/>
+</g>
+<path d="M16.3 25.2c-2.3 0-4.2-1.9-4.2-4.2s1.9-4.2 4.2-4.2h9.4c2.3 0 4.2 1.9 4.2 4.2s-1.9 4.2-4.2 4.2z" class="st0"/>
+</svg>

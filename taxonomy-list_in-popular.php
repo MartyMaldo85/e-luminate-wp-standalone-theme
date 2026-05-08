@@ -1,13 +1,15 @@
 <?php //phpcs:disable WordPress.Files.FileName.NotHyphenatedLowercase
 /**
- * Template Name: Video Series Template Full Width
+ * Template Name: Taxonomy List In Popular
  *
  * Template Post Type: video_series
  *
- * The template for the full-width page.
- *
- * @package Hestia
- * @since   Hestia 1.0
+ * @category   Theme
+ * @package eluminate-standalone
+ * @author     Nazario A. Ayala <nazario@niztech.com>
+ * @license    opensource.org MIT License
+ * @link       https://www.niztech.com
+ * @since      0.0.1
  */
 
 if ( class_exists( 'Niztech_Youtube' ) ) {
@@ -31,6 +33,8 @@ get_template_part( 'template-parts/main', 'start' );
 
 
 if ( have_posts() ) :
+	echo '<div class="entry-content">';
+	echo '<section class="shows-page-videos">';
 	while ( have_posts() ) :
 		global $post;
 		the_post();
@@ -49,13 +53,15 @@ if ( have_posts() ) :
 						'shortlink' => wp_get_shortlink( $post->ID ),
 					)
 				);
-				echo( '<p class="video-series-count">' );
-				printf( _n( '%s video in series', '%s videos in series', $number_videos, 'eluminate-standalone' ), $number_videos );
-				echo( '</p>' );
+			echo '<p class="video-series-count">';
+			printf( _n( '%s video in series', '%s videos in series', $number_videos, 'eluminate-standalone' ), $number_videos );
+			echo '</p>';
 				echo '</article>';
 			}
 		}
 	endwhile;
+	echo '</section>';
+	echo '</div>';
 else :
 	get_template_part( 'template-parts/404' );
 endif;

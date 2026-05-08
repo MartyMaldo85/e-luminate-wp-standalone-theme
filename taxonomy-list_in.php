@@ -12,6 +12,11 @@
  * @since      0.0.1
  */
 
+if ( class_exists( 'Niztech_Youtube' ) ) {
+	$path_to_plugins = join( DIRECTORY_SEPARATOR, array( WP_PLUGIN_DIR, 'niztech-youtube', 'class-niztech-youtube-client.php' ) );
+	include_once $path_to_plugins;
+}
+
 $paged = max( 1, get_query_var( 'paged' ) );
 $page  = max( 1, get_query_var( 'page' ) );
 
@@ -25,6 +30,8 @@ get_template_part( 'template-parts/main', 'start' );
 global $wp_query;
 
 if ( have_posts() ) :
+	echo '<div class="entry-content">';
+	echo '<section class="shows-page-videos">';
 	while ( have_posts() ) :
 		global $post;
 		the_post();
@@ -43,11 +50,11 @@ if ( have_posts() ) :
 						'shortlink' => wp_get_shortlink( $post->ID ),
 					)
 				);
-				if ( ! empty( $number_videos ) ) {
-					echo( '<p class="video-series-count">' );
-					printf( _n( '%s video in series', '%s videos in series', $number_videos, 'eluminate-standalone' ), $number_videos );
-					echo( '</p>' );
-				}
+			if ( ! empty( $number_videos ) ) {
+				echo '<p class="video-series-count">';
+				printf( _n( '%s video in series', '%s videos in series', $number_videos, 'eluminate-standalone' ), $number_videos );
+				echo '</p>';
+			}
 				echo '</article>';
 			}
 		}
@@ -58,6 +65,8 @@ if ( have_posts() ) :
 			'current' => $paged,
 		)
 	);
+	echo '</section>';
+	echo '</div>';
 else :
 	get_template_part( 'template-parts/404' );
 endif;

@@ -5,27 +5,26 @@
 (function () {
 	'use strict';
 
-	var SELECTOR = 'img.video-series-thumbnail, img.video-entry-thumbnail';
+	const SELECTOR = 'img.video-series-thumbnail, img.video-entry-thumbnail';
 	/** Fraction of sampled pixels that must read as near-white */
-	var WHITE_PIXEL_RATIO = 0.5;
+	const WHITE_PIXEL_RATIO = 0.5;
 	/** Mean luminance (0–1) above which we treat the frame as very bright */
-	var MEAN_LUMINANCE = 0.93;
+	const MEAN_LUMINANCE = 0.93;
 
 	function sampleMostlyWhite(imageData) {
-		var d = imageData.data;
-		var whiteish = 0;
-		var n = 0;
-		var sumL = 0;
-		var i;
-		for (i = 0; i < d.length; i += 4) {
+		const d = imageData.data;
+		let whiteish = 0;
+		let n = 0;
+		let sumL = 0;
+		for (let i = 0; i < d.length; i += 4) {
 			if (d[i + 3] < 12) {
 				continue;
 			}
 			n++;
-			var r = d[i];
-			var g = d[i + 1];
-			var b = d[i + 2];
-			var L = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+			const r = d[i];
+			const g = d[i + 1];
+			const b = d[i + 2];
+			const L = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
 			sumL += L;
 			if (r > 236 && g > 236 && b > 236) {
 				whiteish++;
@@ -34,8 +33,8 @@
 		if (!n) {
 			return false;
 		}
-		var avgL = sumL / n;
-		var whiteRatio = whiteish / n;
+		const avgL = sumL / n;
+		const whiteRatio = whiteish / n;
 		return whiteRatio >= WHITE_PIXEL_RATIO || avgL >= MEAN_LUMINANCE;
 	}
 
@@ -43,25 +42,25 @@
 		if (img.dataset.eluminateLightChecked === '1') {
 			return;
 		}
-		var src = img.currentSrc || img.src;
+		const src = img.currentSrc || img.src;
 		if (!src || src.indexOf('data:') === 0) {
 			img.dataset.eluminateLightChecked = '1';
 			return;
 		}
-		var probe = new Image();
+		const probe = new Image();
 		probe.crossOrigin = 'anonymous';
 		probe.onload = function () {
 			try {
-				var w = 56;
-				var nw = probe.naturalWidth || w;
-				var nh = probe.naturalHeight || 1;
-				var h = Math.max(1, Math.round((nh / nw) * w));
-				var canvas = document.createElement('canvas');
+				const w = 56;
+				const nw = probe.naturalWidth || w;
+				const nh = probe.naturalHeight || 1;
+				const h = Math.max(1, Math.round((nh / nw) * w));
+				const canvas = document.createElement('canvas');
 				canvas.width = w;
 				canvas.height = h;
-				var ctx = canvas.getContext('2d');
+				const ctx = canvas.getContext('2d');
 				ctx.drawImage(probe, 0, 0, w, h);
-				var id = ctx.getImageData(0, 0, w, h);
+				const id = ctx.getImageData(0, 0, w, h);
 				if (sampleMostlyWhite(id)) {
 					img.classList.add('video-thumbnail--mostly-light');
 				}
@@ -77,7 +76,7 @@
 	}
 
 	function init() {
-		var nodes = document.querySelectorAll(SELECTOR);
+		const nodes = document.querySelectorAll(SELECTOR);
 		if (!nodes.length) {
 			return;
 		}
@@ -85,7 +84,7 @@
 			Array.prototype.forEach.call(nodes, check);
 			return;
 		}
-		var io = new IntersectionObserver(
+		const io = new IntersectionObserver(
 			function (entries) {
 				entries.forEach(function (entry) {
 					if (!entry.isIntersecting) {

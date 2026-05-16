@@ -1,37 +1,43 @@
 /**
  * Contact Form 7: floating labels — label text sits in the field, then animates up on focus / when filled.
+ *
+ * Primary field selection: FLOAT_LABEL_PRIMARY_SELECTOR (documented in styles/page-contact.css).
+ * After upgrade, the control also gets .eluminate-float-primary for CSS hooks and faster re-query after CF7 DOM swaps.
  */
 (function () {
 	'use strict';
+
+	/** @type {string} Kept in sync with the comment block in page-contact.css */
+	const FLOAT_LABEL_PRIMARY_SELECTOR =
+		'input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="hidden"]):not([type="file"]), textarea, select';
+
+	/** Class added to the primary control so CSS (and re-init) can target it without repeating the long selector. */
+	const FLOAT_LABEL_PRIMARY_CLASS = 'eluminate-float-primary';
 
 	function getPrimaryControl(wrap) {
 		if (!wrap) {
 			return null;
 		}
-		return wrap.querySelector(
-			'input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="hidden"]):not([type="file"]), textarea, select'
-		);
+		const marked = wrap.querySelector('.' + FLOAT_LABEL_PRIMARY_CLASS);
+		if (marked) {
+			return marked;
+		}
+		return wrap.querySelector(FLOAT_LABEL_PRIMARY_SELECTOR);
 	}
 
 	function extractLabelText(label, wrap) {
-		var parts = [];
-		var child = label.firstChild;
-		while (child) {
-			if (child === wrap) {
-				break;
-			}
-			if (child.nodeType === 3) {
-				parts.push(child.textContent);
-			} else if (child.nodeName === 'BR') {
+		const parts = [];
+		for (let n = label.firstChild; n && n !== wrap; n = n.nextSibling) {
+			if (n.nodeType === Node.TEXT_NODE) {
+				parts.push(n.textContent);
+			} else if (n.nodeName === 'BR') {
 				parts.push(' ');
 			} else if (
-				child.nodeType === 1 &&
-				child !== wrap &&
-				(!child.classList || !child.classList.contains('wpcf7-form-control-wrap'))
+				n.nodeType === Node.ELEMENT_NODE &&
+				!(n.classList && n.classList.contains('wpcf7-form-control-wrap'))
 			) {
-				parts.push(child.textContent || '');
+				parts.push(n.textContent || '');
 			}
-			child = child.nextSibling;
 		}
 		return parts.join('').replace(/\s+/g, ' ').trim();
 	}
@@ -40,7 +46,7 @@
 		if (!control) {
 			return;
 		}
-		var filled = String(control.value || '').trim() !== '';
+		const filled = String(control.value || '').trim() !== '';
 		label.classList.toggle('has-value', filled);
 	}
 
@@ -58,28 +64,28 @@
 		if (!root || !root.querySelectorAll) {
 			return;
 		}
-		var labels = root.querySelectorAll('.wpcf7-form label');
-		for (var i = 0; i < labels.length; i++) {
-			var label = labels[i];
+		const labels = root.querySelectorAll('.wpcf7-form label');
+		for (let i = 0; i < labels.length; i++) {
+			const label = labels[i];
 			if (label.querySelector('.eluminate-float-label__text')) {
 				continue;
 			}
-			var wrap = label.querySelector('.wpcf7-form-control-wrap');
+			const wrap = label.querySelector('.wpcf7-form-control-wrap');
 			if (!wrap || !label.contains(wrap)) {
 				continue;
 			}
-			var control = getPrimaryControl(wrap);
+			const control = getPrimaryControl(wrap);
 			if (!control) {
 				continue;
 			}
-			var labelText = extractLabelText(label, wrap);
+			const labelText = extractLabelText(label, wrap);
 			if (!labelText) {
 				continue;
 			}
 			while (label.firstChild && label.firstChild !== wrap) {
 				label.removeChild(label.firstChild);
 			}
-			var span = document.createElement('span');
+			const span = document.createElement('span');
 			span.className = 'eluminate-float-label__text';
 			span.textContent = labelText;
 			label.insertBefore(span, wrap);
@@ -87,6 +93,7 @@
 			if (control.tagName === 'TEXTAREA') {
 				label.classList.add('eluminate-float-label--textarea');
 			}
+			control.classList.add(FLOAT_LABEL_PRIMARY_CLASS);
 			bindControl(control, label);
 		}
 	}
@@ -95,26 +102,26 @@
 		if (!root || !root.querySelectorAll) {
 			return;
 		}
-		var labels = root.querySelectorAll('label.eluminate-float-label');
-		for (var i = 0; i < labels.length; i++) {
-			var label = labels[i];
-			var wrap = label.querySelector('.wpcf7-form-control-wrap');
-			var control = wrap ? getPrimaryControl(wrap) : null;
+		const labels = root.querySelectorAll('label.eluminate-float-label');
+		for (let i = 0; i < labels.length; i++) {
+			const label = labels[i];
+			const wrap = label.querySelector('.wpcf7-form-control-wrap');
+			const control = wrap ? getPrimaryControl(wrap) : null;
 			updateHasValue(control, label);
 		}
 	}
 
 	function bindDelegatedHasValueSync() {
 		function syncFromEvent(ev) {
-			var t = ev.target;
+			const t = ev.target;
 			if (!t || t.nodeType !== 1) {
 				return;
 			}
-			var tag = t.tagName;
+			const tag = t.tagName;
 			if (tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'SELECT') {
 				return;
 			}
-			var typ = t.type;
+			const typ = t.type;
 			if (
 				typ === 'checkbox' ||
 				typ === 'radio' ||
@@ -125,11 +132,11 @@
 			) {
 				return;
 			}
-			var wrap = t.closest('.wpcf7-form-control-wrap');
+			const wrap = t.closest('.wpcf7-form-control-wrap');
 			if (!wrap || !wrap.closest('.wpcf7-form')) {
 				return;
 			}
-			var label = wrap.closest('label.eluminate-float-label');
+			const label = wrap.closest('label.eluminate-float-label');
 			if (!label) {
 				return;
 			}
@@ -162,7 +169,7 @@
 			evt,
 			function () {
 				window.requestAnimationFrame(function () {
-					var scope = document.querySelector('.body-page .entry-content') || document.body;
+					const scope = document.querySelector('.body-page .entry-content') || document.body;
 					initFloatLabels(scope);
 					refreshAllFloatLabels(scope);
 					window.requestAnimationFrame(function () {

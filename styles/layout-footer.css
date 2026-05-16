@@ -45,6 +45,10 @@
 		margin: 0;
 	}
 
+	address.mailing-address {
+		font-style: normal;
+	}
+
 	.logos {
 		color: white;
 		grid-area: logos;

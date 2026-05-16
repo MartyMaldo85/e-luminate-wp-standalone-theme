@@ -108,6 +108,12 @@ $menu_icon   = $assets_base . 'menu.svg';
 	/** Last atan2 sample (rad); null until first committed drag frame. */
 	window.orbitTouchLastAngle = null;
 	window.orbitTouchPanning = false;
+	/** AbortController for window-level touchmove/end/cancel (finger can leave the spin-pane hit area while orbit-dragging). */
+	window.orbitDocTouchAbort = window.orbitDocTouchAbort || null;
+	/** Element that holds pointer capture during orbit drag (Pointer Events path). */
+	window.orbitPointerCaptureEl = window.orbitPointerCaptureEl || null;
+	/** Last good hub/submenu center when getBoundingClientRect() briefly returns a zero-sized box mid-frame. */
+	window.orbitGestureCenterCache = window.orbitGestureCenterCache || null;
 	/* While true, CSS uses data-motion "free" (no 200ms step tween); MOMENTUM_ARM ends direct-drive, SNAP_IDLE triggers lattice snap if not coasting. */
 	window.orbitWheelGestureActive = false;
 	window.orbitWheelMomentumArmTimer = window.orbitWheelMomentumArmTimer || null;
@@ -847,6 +853,15 @@ $menu_icon   = $assets_base . 'menu.svg';
 		return { cx: r.left + r.width * 0.5, cy: r.top + r.height * 0.5 };
 	}
 
+	function getOrbitGestureCenterLiveOrCached() {
+		const live = getOrbitGestureCenter();
+		if (live) {
+			window.orbitGestureCenterCache = live;
+			return live;
+		}
+		return window.orbitGestureCenterCache || null;
+	}
+
 	/** atan2 from client point to center; clamps radius so passing over the hub does not spike. */
 	function orbitTouchAngleFromClientXY(clientX, clientY, c) {
 		let rx = clientX - c.cx;
@@ -869,6 +884,18 @@ $menu_icon   = $assets_base . 'menu.svg';
 	}
 
 	function resetOrbitTouchState() {
+		if (window.orbitDocTouchAbort) {
+			window.orbitDocTouchAbort.abort();
+			window.orbitDocTouchAbort = null;
+		}
+		if (window.orbitPointerCaptureEl != null && window.orbitTouchId != null) {
+			try {
+				window.orbitPointerCaptureEl.releasePointerCapture(window.orbitTouchId);
+			} catch (_) {
+			}
+		}
+		window.orbitPointerCaptureEl = null;
+		window.orbitGestureCenterCache = null;
 		window.orbitTouchId = null;
 		window.orbitTouchPanning = false;
 		window.orbitTouchLastAngle = null;
@@ -883,63 +910,49 @@ $menu_icon   = $assets_base . 'menu.svg';
 		return null;
 	}
 
-	function onOrbitTouchStart(e) {
-		if (!isOrbitWheelSurfaceActive() || getOrbitScrollItemCount() === 0) {
-			resetOrbitTouchState();
-			return;
+	/** Prefer TouchEvent.touches — targetTouches can omit the finger after retargeting outside the listener subtree. */
+	function getTrackedOrbitTouch(e) {
+		if (window.orbitTouchId === null) {
+			return null;
 		}
-		if (e.targetTouches.length !== 1) {
-			resetOrbitTouchState();
-			return;
-		}
-		const t = e.targetTouches[0];
-		window.orbitTouchId = t.identifier;
-		window.orbitTouchOriginX = t.clientX;
-		window.orbitTouchOriginY = t.clientY;
-		window.orbitTouchLastAngle = null;
-		window.orbitTouchPanning = false;
+		return (
+			findOrbitTouchById(e.touches, window.orbitTouchId) ||
+			findOrbitTouchById(e.targetTouches, window.orbitTouchId)
+		);
 	}
 
-	function onOrbitTouchMove(e) {
-		if (window.orbitTouchId === null) {
-			return;
-		}
-		const t = findOrbitTouchById(e.targetTouches, window.orbitTouchId);
-		if (!t) {
-			return;
-		}
-		const c = getOrbitGestureCenter();
+	function orbitHandleDragMove(clientX, clientY, activeFingerCount, timeStamp, moveEvent) {
+		const c = getOrbitGestureCenterLiveOrCached();
 		if (!c) {
 			return;
 		}
 		if (!window.orbitTouchPanning) {
-			if (e.targetTouches.length > 1) {
+			if (activeFingerCount > 1) {
 				resetOrbitTouchState();
 				return;
 			}
-			const rdx = t.clientX - window.orbitTouchOriginX;
-			const rdy = t.clientY - window.orbitTouchOriginY;
+			const rdx = clientX - window.orbitTouchOriginX;
+			const rdy = clientY - window.orbitTouchOriginY;
 			if (Math.hypot(rdx, rdy) < ORBIT_TOUCH_SLOP_PX) {
 				return;
 			}
 			window.orbitTouchPanning = true;
-			e.preventDefault();
+			moveEvent.preventDefault();
 			const a0 = orbitTouchAngleFromClientXY(window.orbitTouchOriginX, window.orbitTouchOriginY, c);
-			const a1 = orbitTouchAngleFromClientXY(t.clientX, t.clientY, c);
+			const a1 = orbitTouchAngleFromClientXY(clientX, clientY, c);
 			if (a0 === null || a1 === null) {
 				window.orbitTouchLastAngle = a1 !== null ? a1 : a0;
 				return;
 			}
 			const dRad = unwrapAngleRad(a1 - a0);
-			/* Touch keeps original direction (wheel is reversed separately). */
 			const deltaDeg = dRad * (180 / Math.PI);
 			window.orbitTouchLastAngle = a1;
-			applyOrbitGestureDeltaDeg(deltaDeg, deltaDegToRubberDy(deltaDeg), e.timeStamp || performance.now());
+			applyOrbitGestureDeltaDeg(deltaDeg, deltaDegToRubberDy(deltaDeg), timeStamp || performance.now());
 			return;
 		}
-		e.preventDefault();
+		moveEvent.preventDefault();
 		const aPrev = window.orbitTouchLastAngle;
-		const aNow = orbitTouchAngleFromClientXY(t.clientX, t.clientY, c);
+		const aNow = orbitTouchAngleFromClientXY(clientX, clientY, c);
 		if (aNow === null) {
 			return;
 		}
@@ -951,8 +964,102 @@ $menu_icon   = $assets_base . 'menu.svg';
 		window.orbitTouchLastAngle = aNow;
 		const deltaDeg = dRad * (180 / Math.PI);
 		if (deltaDeg !== 0) {
-			applyOrbitGestureDeltaDeg(deltaDeg, deltaDegToRubberDy(deltaDeg), e.timeStamp || performance.now());
+			applyOrbitGestureDeltaDeg(deltaDeg, deltaDegToRubberDy(deltaDeg), timeStamp || performance.now());
 		}
+	}
+
+	function bindOrbitWindowTouchTracking() {
+		if (window.orbitDocTouchAbort) {
+			window.orbitDocTouchAbort.abort();
+		}
+		const ac = new AbortController();
+		window.orbitDocTouchAbort = ac;
+		const sig = ac.signal;
+		window.addEventListener('touchmove', onOrbitTouchMove, { capture: true, passive: false, signal: sig });
+		window.addEventListener('touchend', onOrbitTouchEnd, { capture: true, passive: true, signal: sig });
+		window.addEventListener('touchcancel', onOrbitTouchCancel, { capture: true, passive: true, signal: sig });
+	}
+
+	function onOrbitTouchStart(e) {
+		resetOrbitTouchState();
+		if (!isOrbitWheelSurfaceActive() || getOrbitScrollItemCount() === 0) {
+			return;
+		}
+		if (e.targetTouches.length !== 1) {
+			return;
+		}
+		const t = e.targetTouches[0];
+		window.orbitTouchId = t.identifier;
+		window.orbitTouchOriginX = t.clientX;
+		window.orbitTouchOriginY = t.clientY;
+		window.orbitTouchLastAngle = null;
+		window.orbitTouchPanning = false;
+		bindOrbitWindowTouchTracking();
+	}
+
+	function onOrbitTouchMove(e) {
+		if (window.orbitTouchId === null) {
+			return;
+		}
+		const t = getTrackedOrbitTouch(e);
+		if (!t) {
+			return;
+		}
+		const ts = e.timeStamp || performance.now();
+		orbitHandleDragMove(t.clientX, t.clientY, e.touches.length, ts, e);
+	}
+
+	function onOrbitPointerDown(e) {
+		if (e.pointerType === 'mouse') {
+			return;
+		}
+		resetOrbitTouchState();
+		if (!isOrbitWheelSurfaceActive() || getOrbitScrollItemCount() === 0) {
+			return;
+		}
+		if (!e.isPrimary) {
+			return;
+		}
+		window.orbitTouchId = e.pointerId;
+		window.orbitPointerCaptureEl = e.currentTarget;
+		window.orbitTouchOriginX = e.clientX;
+		window.orbitTouchOriginY = e.clientY;
+		window.orbitTouchLastAngle = null;
+		window.orbitTouchPanning = false;
+		try {
+			e.currentTarget.setPointerCapture(e.pointerId);
+		} catch (_) {
+		}
+	}
+
+	function onOrbitPointerMove(e) {
+		if (window.orbitTouchId === null || e.pointerId !== window.orbitTouchId) {
+			return;
+		}
+		const ts = e.timeStamp || performance.now();
+		orbitHandleDragMove(e.clientX, e.clientY, 1, ts, e);
+	}
+
+	function onOrbitPointerUp(e) {
+		if (window.orbitTouchId === null || e.pointerId !== window.orbitTouchId) {
+			return;
+		}
+		if (window.orbitTouchPanning) {
+			window.orbitWheelVelEma *= 0.5;
+			scheduleOrbitWheelGestureEnd();
+		}
+		resetOrbitTouchState();
+	}
+
+	function onOrbitPointerCancel(e) {
+		if (window.orbitTouchId === null || e.pointerId !== window.orbitTouchId) {
+			return;
+		}
+		if (window.orbitTouchPanning) {
+			window.orbitWheelVelEma *= 0.5;
+			scheduleOrbitWheelGestureEnd();
+		}
+		resetOrbitTouchState();
 	}
 
 	function onOrbitTouchEnd(e) {
@@ -1097,6 +1204,8 @@ $menu_icon   = $assets_base . 'menu.svg';
 			parentSlug: pageSlug,
 			parentLabel: pageLabel,
 		}];
+		/* Before resetOrbitMotion: orbit scroll count must reflect submenu, not hub (slot indices / >5 items). */
+		bodyNavElm.setAttribute('data-selected', 'page-submenu');
 		resetOrbitMotion();
 		renderPageSubmenuOrbit({ submenuEnter: true, orbitTitleEnterFromHub: true });
 	}
@@ -1211,6 +1320,7 @@ $menu_icon   = $assets_base . 'menu.svg';
 		if (window.orbitWheelAbort) {
 			window.orbitWheelAbort.abort();
 		}
+		resetOrbitTouchState();
 		const ac = new AbortController();
 		window.orbitWheelAbort = ac;
 		window.addEventListener('wheel', (event) => {
@@ -1231,10 +1341,18 @@ $menu_icon   = $assets_base . 'menu.svg';
 		}, { passive: false, signal: ac.signal });
 		const orbitTouchRoot = document.querySelector('.header-logo-cluster');
 		if (orbitTouchRoot) {
-			orbitTouchRoot.addEventListener('touchstart', onOrbitTouchStart, { passive: true, signal: ac.signal });
-			orbitTouchRoot.addEventListener('touchmove', onOrbitTouchMove, { passive: false, signal: ac.signal });
-			orbitTouchRoot.addEventListener('touchend', onOrbitTouchEnd, { passive: true, signal: ac.signal });
-			orbitTouchRoot.addEventListener('touchcancel', onOrbitTouchCancel, { passive: true, signal: ac.signal });
+			if (typeof window.PointerEvent !== 'undefined') {
+				/*
+				 * Pointer capture keeps pointermove targeted at this node after the finger leaves the spin pane
+				 * (.header-logo-cluster is pointer-events:none except .header-logo-cluster__spin-pane).
+				 */
+				orbitTouchRoot.addEventListener('pointerdown', onOrbitPointerDown, { passive: true, signal: ac.signal });
+				orbitTouchRoot.addEventListener('pointermove', onOrbitPointerMove, { passive: false, signal: ac.signal });
+				orbitTouchRoot.addEventListener('pointerup', onOrbitPointerUp, { passive: true, signal: ac.signal });
+				orbitTouchRoot.addEventListener('pointercancel', onOrbitPointerCancel, { passive: true, signal: ac.signal });
+			} else {
+				orbitTouchRoot.addEventListener('touchstart', onOrbitTouchStart, { passive: true, signal: ac.signal });
+			}
 		}
 	}
 
@@ -1680,6 +1798,7 @@ $menu_icon   = $assets_base . 'menu.svg';
 				parentLabel: pageLabel || (triggerElm ? triggerElm.textContent.trim() : ''),
 			},
 		];
+		bodyNavElm.setAttribute('data-selected', 'page-submenu');
 		resetOrbitMotion();
 		renderPageSubmenuOrbit({ submenuEnter: true, orbitTitleEnterFromHub: true });
 		return false;

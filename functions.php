@@ -14,7 +14,7 @@
 const THEME_KEY     = 'eluminate-standalone';
 const THEME_VERSION = 6;
 
-/** Admin nav menu whose top-level rows define order for "Show in By Topic menu" list_in terms (auto-sync). */
+/** Admin nav menu whose top-level rows define order for "List in By Topic menu" list_in terms (auto-sync). */
 const ELUMINATE_BY_TOPIC_SYNC_MENU_NAME = 'By Topic';
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -1046,9 +1046,103 @@ if ( ! function_exists( 'eluminate_standalone_nav_menu_items_to_orbit_branch' ) 
 	}
 }
 
+if ( ! function_exists( 'eluminate_standalone_orbit_branch_has_child_for_page' ) ) {
+	/**
+	 * Whether an orbit branch already contains a node for this page (nav item or page-tree node).
+	 *
+	 * @param array<int, array<string, mixed>> $children    Child orbit nodes.
+	 * @param WP_Post                           $page        Page post.
+	 * @param array<int, WP_Post>               $items_by_id Menu item ID => nav_menu_item post.
+	 *
+	 * @return bool
+	 */
+	function eluminate_standalone_orbit_branch_has_child_for_page( array $children, WP_Post $page, array $items_by_id ): bool {
+		$want_url = get_permalink( $page );
+		$want_id  = (int) $page->ID;
+		foreach ( $children as $ch ) {
+			if ( ! is_array( $ch ) ) {
+				continue;
+			}
+			$cid = isset( $ch['id'] ) ? (int) $ch['id'] : 0;
+			if ( $cid === $want_id ) {
+				return true;
+			}
+			$ch_url = isset( $ch['url'] ) ? (string) $ch['url'] : '';
+			if ( $ch_url !== '' && is_string( $want_url ) && $ch_url === $want_url ) {
+				return true;
+			}
+			$mi = $items_by_id[ $cid ] ?? null;
+			if ( $mi instanceof WP_Post && 'post_type' === $mi->type && 'page' === $mi->object && (int) $mi->object_id === $want_id ) {
+				return true;
+			}
+		}
+		return false;
+	}
+}
+
+if ( ! function_exists( 'eluminate_standalone_merge_page_children_into_nav_orbit_branch' ) ) {
+	/**
+	 * Adds published child pages under each orbit node that links to a page, when those children are missing
+	 * from the Orbit Ring nav menu (menu hierarchy alone does not reflect Page Attributes).
+	 *
+	 * @param array<int, array<string, mixed>> $branch      Orbit branch nodes.
+	 * @param array<int, WP_Post>               $items_by_id Menu item ID => nav_menu_item post (same menu).
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	function eluminate_standalone_merge_page_children_into_nav_orbit_branch( array $branch, array $items_by_id ): array {
+		$out = array();
+		foreach ( $branch as $node ) {
+			if ( ! is_array( $node ) ) {
+				continue;
+			}
+			$children = isset( $node['children'] ) && is_array( $node['children'] ) ? $node['children'] : array();
+			$mid      = isset( $node['id'] ) ? (int) $node['id'] : 0;
+			$item     = $items_by_id[ $mid ] ?? null;
+
+			if ( $item instanceof WP_Post && 'post_type' === $item->type && 'page' === $item->object ) {
+				$page_id = (int) $item->object_id;
+				if ( $page_id > 0 ) {
+					$orphans = get_pages(
+						array(
+							'post_type'    => 'page',
+							'post_status'  => 'publish',
+							'sort_column'  => 'menu_order,post_title',
+							'sort_order'   => 'ASC',
+							'hierarchical' => false,
+							'parent'       => $page_id,
+						)
+					);
+					foreach ( $orphans as $page ) {
+						if ( ! $page instanceof WP_Post ) {
+							continue;
+						}
+						if ( eluminate_standalone_orbit_branch_has_child_for_page( $children, $page, $items_by_id ) ) {
+							continue;
+						}
+						$added = eluminate_standalone_build_page_menu_branch( array( $page ) );
+						if ( ! empty( $added[0] ) && is_array( $added[0] ) ) {
+							$added[0]['source'] = 'page_hierarchy';
+							$children[]         = $added[0];
+						}
+					}
+				}
+			}
+
+			$children         = eluminate_standalone_merge_page_children_into_nav_orbit_branch( $children, $items_by_id );
+			$node['children'] = $children;
+			$out[]            = $node;
+		}
+		return $out;
+	}
+}
+
 if ( ! function_exists( 'eluminate_standalone_get_nav_menu_orbit_tree' ) ) {
 	/**
 	 * Orbit tree from the menu assigned to the "Orbit Ring" location (Appearance → Menus → Manage Locations).
+	 *
+	 * Published pages whose parent matches a menu-linked page are merged in when absent from the menu
+	 * so Page Attributes stay in sync with the orbit submenu.
 	 *
 	 * @return array<int, array<string, mixed>>
 	 */
@@ -1076,6 +1170,12 @@ if ( ! function_exists( 'eluminate_standalone_get_nav_menu_orbit_tree' ) ) {
 		if ( empty( $items ) || ! is_array( $items ) ) {
 			return array();
 		}
+		$items_by_id = array();
+		foreach ( $items as $item ) {
+			if ( $item instanceof WP_Post && 'nav_menu_item' === $item->post_type ) {
+				$items_by_id[ (int) $item->ID ] = $item;
+			}
+		}
 		$children_map = array();
 		foreach ( $items as $item ) {
 			if ( ! $item instanceof WP_Post || 'nav_menu_item' !== $item->post_type ) {
@@ -1101,7 +1201,8 @@ if ( ! function_exists( 'eluminate_standalone_get_nav_menu_orbit_tree' ) ) {
 			);
 		}
 		unset( $kids );
-		return eluminate_standalone_nav_menu_items_to_orbit_branch( $children_map[0], $children_map );
+		$branch = eluminate_standalone_nav_menu_items_to_orbit_branch( $children_map[0], $children_map );
+		return eluminate_standalone_merge_page_children_into_nav_orbit_branch( $branch, $items_by_id );
 	}
 }
 
@@ -1122,7 +1223,7 @@ if ( ! function_exists( 'eluminate_standalone_get_orbit_menu_tree' ) ) {
 
 if ( ! function_exists( 'eluminate_standalone_get_by_topic_ordered_terms' ) ) {
 	/**
-	 * list_in terms with "Show in By Topic menu" checked, ordered for display.
+	 * list_in terms with "List in By Topic menu" checked, ordered for display.
 	 *
 	 * Order follows the **By Topic** nav menu (Appearance → Menus, menu name matches
 	 * {@see ELUMINATE_BY_TOPIC_SYNC_MENU_NAME}): top-level items in menu order that map to checked
@@ -1637,7 +1738,7 @@ add_action(
 
 if ( ! function_exists( 'eluminate_standalone_list_in_add_by_topic_field' ) ) {
 	/**
-	 * Renders "Show in By Topic menu" checkbox on add term form.
+	 * Renders "List in By Topic menu" checkbox on add term form.
 	 *
 	 * @return void
 	 */
@@ -1647,7 +1748,7 @@ if ( ! function_exists( 'eluminate_standalone_list_in_add_by_topic_field' ) ) {
 			<label for="eluminate-by-topic-menu"><?php echo esc_html__( 'By Topic menu', 'eluminate-standalone' ); ?></label>
 			<label>
 				<input type="checkbox" id="eluminate-by-topic-menu" name="eluminate_by_topic_menu" value="1" />
-				<?php echo esc_html__( 'Show in By Topic menu', 'eluminate-standalone' ); ?>
+				<?php echo esc_html__( 'List in By Topic menu', 'eluminate-standalone' ); ?>
 			</label>
 			<p class="description"><?php echo esc_html__( 'Optionally, manage "By Topic" menu order in Appearance > Menus > By Topic. Otherwise, it is appended to current menu order.', 'eluminate-standalone' ); ?></p>
 		</div>
@@ -1658,7 +1759,7 @@ add_action( 'list_in_add_form_fields', 'eluminate_standalone_list_in_add_by_topi
 
 if ( ! function_exists( 'eluminate_standalone_list_in_edit_by_topic_field' ) ) {
 	/**
-	 * Renders "Show in By Topic menu" checkbox on edit term form.
+	 * Renders "List in By Topic menu" checkbox on edit term form.
 	 *
 	 * @param WP_Term $term Current term.
 	 *
@@ -1674,7 +1775,7 @@ if ( ! function_exists( 'eluminate_standalone_list_in_edit_by_topic_field' ) ) {
 			<td>
 				<label>
 					<input type="checkbox" id="eluminate-by-topic-menu" name="eluminate_by_topic_menu" value="1" <?php checked( $enabled ); ?> />
-					<?php echo esc_html__( 'Show in By Topic menu', 'eluminate-standalone' ); ?>
+					<?php echo esc_html__( 'List in By Topic menu', 'eluminate-standalone' ); ?>
 				</label>
 				<p class="description"><?php echo esc_html__( 'Optionally, manage "By Topic" menu order in Appearance > Menus > By Topic. Otherwise, it is appended to current menu order.', 'eluminate-standalone' ); ?></p>
 			</td>
@@ -1707,6 +1808,77 @@ if ( ! function_exists( 'eluminate_standalone_save_list_in_by_topic_field' ) ) {
 add_action( 'created_list_in', 'eluminate_standalone_save_list_in_by_topic_field' );
 add_action( 'edited_list_in', 'eluminate_standalone_save_list_in_by_topic_field' );
 
+if ( ! function_exists( 'eluminate_standalone_list_in_term_ids_mapped_by_pages' ) ) {
+	/**
+	 * Returns list_in term IDs referenced by at least one page's "List in Section mapping".
+	 *
+	 * Result is cached for the request.
+	 *
+	 * @return int[]
+	 */
+	function eluminate_standalone_list_in_term_ids_mapped_by_pages(): array {
+		static $cached = null;
+		if ( is_array( $cached ) ) {
+			return $cached;
+		}
+
+		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Admin terms table; single query per request.
+		$rows = $wpdb->get_col(
+			$wpdb->prepare(
+				"SELECT DISTINCT CAST(pm.meta_value AS UNSIGNED)
+				FROM {$wpdb->postmeta} pm
+				INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id AND p.post_type = %s
+					AND p.post_status NOT IN ('trash','auto-draft')
+				WHERE pm.meta_key = %s
+				AND pm.meta_value NOT IN ('','0')",
+				'page',
+				'_eluminate_list_in_term_id'
+			)
+		);
+
+		$ids = array();
+		foreach ( (array) $rows as $row ) {
+			$tid = (int) $row;
+			if ( $tid > 0 ) {
+				$ids[] = $tid;
+			}
+		}
+		$cached = array_values( array_unique( $ids ) );
+		return $cached;
+	}
+}
+
+if ( ! function_exists( 'eluminate_standalone_list_in_build_listed_in_label' ) ) {
+	/**
+	 * Builds the admin "Listed In" cell text for list_in terms.
+	 *
+	 * Order: Homepage (slug `featured`), By Topic, Shows — joined with " / ". Empty → Unlisted.
+	 *
+	 * @param string $slug     Term slug.
+	 * @param bool   $by_topic Whether "List in By Topic menu" is enabled.
+	 * @param bool   $mapped   Whether a page maps to this term.
+	 *
+	 * @return string Unescaped label (escape when outputting HTML).
+	 */
+	function eluminate_standalone_list_in_build_listed_in_label( string $slug, bool $by_topic, bool $mapped ): string {
+		$parts = array();
+		if ( 'featured' === $slug ) {
+			$parts[] = __( 'Homepage', 'eluminate-standalone' );
+		}
+		if ( $by_topic ) {
+			$parts[] = __( 'By Topic', 'eluminate-standalone' );
+		}
+		if ( $mapped ) {
+			$parts[] = __( 'Shows', 'eluminate-standalone' );
+		}
+		if ( empty( $parts ) ) {
+			return __( 'Unlisted', 'eluminate-standalone' );
+		}
+		return implode( ' / ', $parts );
+	}
+}
+
 if ( ! function_exists( 'eluminate_standalone_list_in_columns_by_topic_submenu' ) ) {
 	/**
 	 * Inserts the "Listed In" column between Slug and Count (posts) on the list_in terms list.
@@ -1734,7 +1906,9 @@ add_filter( 'manage_edit-list_in_columns', 'eluminate_standalone_list_in_columns
 
 if ( ! function_exists( 'eluminate_standalone_list_in_custom_column_by_topic_submenu' ) ) {
 	/**
-	 * Returns By Topic / Shows for the Listed In column (core uses apply_filters for this hook).
+	 * Returns Listed In labels for the list_in terms table (core uses apply_filters for this hook).
+	 *
+	 * Homepage: term slug is `featured`. By Topic / Shows as before; multiple segments joined with " / ".
 	 *
 	 * @param string $output      Default empty output.
 	 * @param string $column_name Column key.
@@ -1750,12 +1924,14 @@ if ( ! function_exists( 'eluminate_standalone_list_in_custom_column_by_topic_sub
 		if ( $tid <= 0 ) {
 			return $output;
 		}
-		$enabled = (int) get_term_meta( $tid, '_eluminate_by_topic_menu', true ) === 1;
-		return esc_html(
-			$enabled
-				? __( 'By Topic', 'eluminate-standalone' )
-				: __( 'Shows', 'eluminate-standalone' )
-		);
+		$term = get_term( $tid, 'list_in' );
+		if ( ! $term instanceof WP_Term ) {
+			return $output;
+		}
+		$by_topic = (int) get_term_meta( $tid, '_eluminate_by_topic_menu', true ) === 1;
+		$mapped   = in_array( $tid, eluminate_standalone_list_in_term_ids_mapped_by_pages(), true );
+		$label    = eluminate_standalone_list_in_build_listed_in_label( (string) $term->slug, $by_topic, $mapped );
+		return esc_html( $label );
 	}
 }
 add_filter( 'manage_list_in_custom_column', 'eluminate_standalone_list_in_custom_column_by_topic_submenu', 10, 3 );
@@ -1813,12 +1989,46 @@ if ( ! function_exists( 'eluminate_standalone_list_in_terms_clauses_order_listed
 			$clauses['join'] .= " LEFT JOIN {$wpdb->termmeta} AS elbto ON ( t.term_id = elbto.term_id AND elbto.meta_key = '_eluminate_by_topic_menu' )";
 		}
 
-		$label_on       = __( 'By Topic', 'eluminate-standalone' );
-		$label_off      = __( 'Shows', 'eluminate-standalone' );
+		if ( strpos( $clauses['join'], 'ellimap.map_tid' ) === false ) {
+			$key = esc_sql( '_eluminate_list_in_term_id' );
+			$clauses['join'] .= " LEFT JOIN (
+				SELECT DISTINCT CAST(pm.meta_value AS UNSIGNED) AS map_tid
+				FROM {$wpdb->postmeta} pm
+				INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id AND p.post_type = 'page'
+					AND p.post_status NOT IN ('trash','auto-draft')
+				WHERE pm.meta_key = '{$key}'
+				AND pm.meta_value NOT IN ('','0')
+			) AS ellimap ON ellimap.map_tid = t.term_id";
+		}
+
+		$sort_dummy_slug = '__non_featured__';
+		$l_hp_bt_sh       = eluminate_standalone_list_in_build_listed_in_label( 'featured', true, true );
+		$l_hp_bt          = eluminate_standalone_list_in_build_listed_in_label( 'featured', true, false );
+		$l_hp_sh          = eluminate_standalone_list_in_build_listed_in_label( 'featured', false, true );
+		$l_hp             = eluminate_standalone_list_in_build_listed_in_label( 'featured', false, false );
+		$l_bt_sh          = eluminate_standalone_list_in_build_listed_in_label( $sort_dummy_slug, true, true );
+		$l_bt             = eluminate_standalone_list_in_build_listed_in_label( $sort_dummy_slug, true, false );
+		$l_sh             = eluminate_standalone_list_in_build_listed_in_label( $sort_dummy_slug, false, true );
+		$l_un             = eluminate_standalone_list_in_build_listed_in_label( $sort_dummy_slug, false, false );
+
 		$label_fragment = sprintf(
-			"CASE WHEN COALESCE(elbto.meta_value, '') = '1' THEN '%s' ELSE '%s' END",
-			esc_sql( $label_on ),
-			esc_sql( $label_off )
+			"CASE
+WHEN t.slug = 'featured' AND COALESCE(elbto.meta_value, '') = '1' AND ellimap.map_tid IS NOT NULL THEN '%s'
+WHEN t.slug = 'featured' AND COALESCE(elbto.meta_value, '') = '1' THEN '%s'
+WHEN t.slug = 'featured' AND ellimap.map_tid IS NOT NULL THEN '%s'
+WHEN t.slug = 'featured' THEN '%s'
+WHEN COALESCE(elbto.meta_value, '') = '1' AND ellimap.map_tid IS NOT NULL THEN '%s'
+WHEN COALESCE(elbto.meta_value, '') = '1' THEN '%s'
+WHEN ellimap.map_tid IS NOT NULL THEN '%s'
+ELSE '%s' END",
+			esc_sql( $l_hp_bt_sh ),
+			esc_sql( $l_hp_bt ),
+			esc_sql( $l_hp_sh ),
+			esc_sql( $l_hp ),
+			esc_sql( $l_bt_sh ),
+			esc_sql( $l_bt ),
+			esc_sql( $l_sh ),
+			esc_sql( $l_un )
 		);
 
 		$dir = ( isset( $args['order'] ) && 'desc' === strtolower( (string) $args['order'] ) ) ? 'DESC' : 'ASC';
@@ -2414,7 +2624,7 @@ if ( ! function_exists( 'eluminate_standalone_register_post_type_init' ) ) {
 }
 
 /**
- * Add Video count column to Video Series admin list
+ * Add Video Count column to Video Series admin list
  */
 add_filter(
 	'manage_video_series_posts_columns',
@@ -2423,7 +2633,7 @@ add_filter(
 		foreach ( $columns as $key => $value ) {
 			$new_columns[ $key ] = $value;
 			if ( 'title' === $key ) {
-				$new_columns['video_count'] = __( 'Video count', 'eluminate-standalone' );
+				$new_columns['video_count'] = __( 'Video Count', 'eluminate-standalone' );
 			}
 		}
 		return $new_columns;
@@ -2431,7 +2641,7 @@ add_filter(
 );
 
 /**
- * Populate Video count column values
+ * Populate Video Count column values
  */
 add_action(
 	'manage_video_series_posts_custom_column',
@@ -2465,7 +2675,7 @@ add_action(
 		$wp_customize->add_setting(
 			'eluminate_standalone_mailing_address',
 			array(
-				'default'           => '',
+				'default'           => 'Soroptimist International of Novato<br />PO Box 1267<br />Novato, CA 94948',
 				'sanitize_callback' => 'wp_kses_post', // Allows basic HTML.
 				'transport'         => 'refresh',
 			)

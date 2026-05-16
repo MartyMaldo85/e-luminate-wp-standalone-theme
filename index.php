@@ -45,7 +45,7 @@ get_template_part( 'template-parts/main', 'start' );
 		(function () {
 			try {
 				if ( localStorage.getItem( 'eluminate_logo_menu_hint_dismissed' ) === '1' ) {
-					var el = document.getElementById( 'logo-menu-hint' );
+					const el = document.getElementById( 'logo-menu-hint' );
 					if ( el ) {
 						el.remove();
 					}

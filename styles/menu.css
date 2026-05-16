@@ -1154,6 +1154,7 @@ body:has(#body-nav[data-selected="page-submenu"]) .header-logo-cluster .orbit-su
 		max-width: min(100svw, 100%);
 		pointer-events: auto;
 		position: fixed;
+		touch-action: none;
 		/*
 		 * Keep the orbit center at the historical right-docked position (based on --spin-orbit-size)
 		 * while allowing a larger pane footprint (--spin-dock-size) to extend left.

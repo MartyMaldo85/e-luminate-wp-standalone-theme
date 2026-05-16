@@ -9,7 +9,14 @@
 	width: 100%;
 }
 
-/* Floating labels (JS adds .eluminate-float-label + .eluminate-float-label__text) */
+/*
+ * Floating labels (JS adds .eluminate-float-label, .eluminate-float-label__text, .eluminate-float-primary).
+ *
+ * Primary control (first match): must match FLOAT_LABEL_PRIMARY_SELECTOR in assets/js/contact-float-labels.js
+ *   input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="hidden"]):not([type="file"]), textarea, select
+ * CSS cannot share that string with JS automatically — change both places, or only the JS constant and this comment.
+ */
+/* Optional hook: .eluminate-float-primary is the same control the script chose (for extra rules without repeating selectors) */
 .body-page .entry-content .wpcf7-form label.eluminate-float-label {
 	background: transparent;
 	border: none;

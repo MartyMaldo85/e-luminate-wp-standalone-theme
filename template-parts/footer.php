@@ -1,9 +1,12 @@
 <footer class="layout-footer">
-	<p class="copyright copyright--mailing">
-		<?php echo esc_html( 'Soroptimist International of Novato' ); ?><br />
-		<?php echo esc_html( 'PO Box 1267' ); ?><br />
-		<?php echo esc_html( 'Novato, CA 94948' ); ?>
-	</p>
+	<?php
+	$mailing_address = get_theme_mod( 'eluminate_standalone_mailing_address' );
+	if ( ! empty( $mailing_address ) ) {
+		echo '<address class="copyright copyright--mailing mailing-address">';
+		echo wp_kses_post( $mailing_address );
+		echo '</address>';
+	}
+	?>
 	<div class="logos">
 		<?php get_template_part( 'assets/soroptimist-international-of-novato-logo-mono' ); ?>
 		<?php get_template_part( 'assets/soroptimist-international-logo-mono' ); ?>

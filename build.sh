@@ -42,3 +42,4 @@ echo "5 of 5) Cleanup";
 rm -rf ./eluminate-standalone/
 
 echo "Done!";
+echo "eluminate-standalone-"$timestamp".zip"

@@ -56,7 +56,7 @@ p:not(:last-child) {
 }
 
 a {
-	color: #0070d4;
+	color: var(--primary-color-light);
 	text-decoration: none;
 
 	&:hover {

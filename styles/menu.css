@@ -60,7 +60,7 @@
 
 			&:hover {
 				border-radius: calc(var(--border-radius) / 2);
-				background-color: var(--primary-color);
+				background-color: var(--primary-color-light);
 
 				a {
 					color: var(--tertiary-color);
@@ -82,8 +82,8 @@
 		display: none;
 		height: 2rem;
 		position: absolute;
-		right: 0.5rem;
-		top: 0.5rem;
+		right: 1rem;
+		top: 0.7rem;
 		width: 1.5rem;
 	}
 
@@ -145,6 +145,16 @@
 			&.list-in {
 				flex-direction: column;
 				width: unset;
+			}
+		}
+
+		.menu {
+			&.list-in {
+				.topic {
+					.menu-list {
+						columns: 1;
+					}
+				}
 			}
 		}
 

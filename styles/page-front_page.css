@@ -1,3 +1,27 @@
-.series-img {
-	width: 100%;
+.front-page {
+	.series-image {
+		width: 100%;
+		border-radius: var(--border-radius);
+	}
+
+	.featured {
+		display: flex;
+		flex-direction: row;
+		gap: 1rem;
+		margin-bottom: 1rem;
+		margin-top: 1rem;
+	}
+
+	.featured-series {
+		flex-basis: 20%;
+		flex-grow: 1;
+	}
+}
+
+@media (width <= 900px) {
+	.front-page {
+		.featured {
+			flex-direction: column;
+		}
+	}
 }

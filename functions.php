@@ -70,7 +70,6 @@ add_action(
 		* If you're building a theme based on twentyfifteen, use a find and replace
 		* to change 'twentyfifteen' to the name of your theme in all the template files
 		*/
-		// load_theme_textdomain( 'eluminate-standalone' );
 
 		/*
 		* Let WordPress manage the document title.
@@ -192,21 +191,27 @@ if ( ! function_exists( 'eluminate_video_series_html' ) ) {
 	 * Generates the html to display.
 	 *
 	 * @param array $video_series_data array of video_series objects.
-	 * @param array $options extra parameters: id, class, hide_others, hide_title.
+	 * @param array $options extra parameters: id, class, hide_others, title_position, show_desc
 	 *
 	 * @return string Html string.
 	 */
 	function eluminate_video_series_html( array $video_series_data, array $options = array() ): string {
+		$show_desc = false;
+		if ( isset( $options['show_desc'] ) && ( '' === $options['show_desc'] || 'true' === $options['show_desc'] ) ) {
+			$show_desc = true;
+		}
+
 		$section_attribute_html[] = isset( $options['id'] ) ? 'id="' . $options['id'] . '"' : '';
 		$section_attribute_html[] = isset( $options['class'] ) ? 'class="' . $options['class'] . '"' : '';
 		$html                     = '<section ' . join( ' ', $section_attribute_html ) . '>';
-		$hide_title               = boolval( $options['hide_title'] ?? false );
+		$title_position           = $options['title_position'] ?? 'hide';
 		foreach ( $video_series_data as $series ) {
 			$videos                 = $series['video_data'] ?? array();
 			$class                  = $options['class'] ?? null;
 			$article_attribute_html = $class ? ' class="' . $class . '-series" ' : 'class="series"';
 			$html                  .= '<article ' . $article_attribute_html . '>';
-			if ( ! $hide_title && isset( $series['post_title'] ) ) {
+
+			if ( 'top' === $title_position && isset( $series['post_title'] ) ) {
 				$html .= '<h2 class="title">' . $series['post_title'] . '</h2 >';
 			}
 
@@ -221,6 +226,17 @@ if ( ! function_exists( 'eluminate_video_series_html' ) ) {
 						$img_attribute_html
 					) . ' src="' . $img_url . '"></a>';
 				}
+			}
+
+			if ( 'bottom' === $title_position && isset( $series['post_title'] ) ) {
+				$html .= '<h2 class="title">' . $series['post_title'] . '</h2 >';
+			}
+
+			if ( $show_desc && $series['video_data'][0]->description ) {
+				$html .= '<p class="description">' . $series['video_data'][0]->description . '</p>';
+			}
+
+			if ( sizeof( $videos ) > 0 ) {
 				$hide_others = boolval( $options['hide_others'] ?? false );
 				if ( ! $hide_others ) {
 					$list_attribute_html = $class ? ' class="' . $class . '-items items" ' : 'class="items"';
@@ -249,11 +265,12 @@ add_shortcode(
 	function ( $attr ) {
 		$a = shortcode_atts(
 			array(
-				'class'       => null,
-				'hide_others' => false,
-				'hide_title'  => false,
-				'id'          => null,
-				'limit'       => 20,
+				'class'          => null,
+				'hide_others'    => false,
+				'id'             => null,
+				'limit'          => 20,
+				'show_desc'      => false,
+				'title_position' => 'hide',
 			),
 			$attr
 		);
@@ -264,10 +281,11 @@ add_shortcode(
 		return eluminate_video_series_html(
 			$data,
 			array(
-				'class'       => $a['class'],
-				'hide_others' => $a['hide_others'],
-				'hide_title'  => $a['hide_title'],
-				'id'          => $a['id'],
+				'class'          => $a['class'],
+				'hide_others'    => $a['hide_others'],
+				'id'             => $a['id'],
+				'show_desc'      => $a['show_desc'],
+				'title_position' => $a['title_position'],
 			)
 		);
 	}
@@ -278,11 +296,12 @@ add_shortcode(
 	function ( $attr ) {
 		$a = shortcode_atts(
 			array(
-				'class'       => null,
-				'hide_others' => false,
-				'hide_title'  => false,
-				'id'          => null,
-				'limit'       => 3,
+				'class'          => null,
+				'hide_others'    => false,
+				'id'             => null,
+				'limit'          => 3,
+				'show_desc'      => false,
+				'title_position' => 'hide',
 			),
 			$attr
 		);
@@ -293,10 +312,11 @@ add_shortcode(
 		return eluminate_video_series_html(
 			$data,
 			array(
-				'class'       => $a['class'],
-				'hide_others' => $a['hide_others'],
-				'hide_title'  => $a['hide_title'],
-				'id'          => $a['id'],
+				'class'          => $a['class'],
+				'hide_others'    => $a['hide_others'],
+				'id'             => $a['id'],
+				'show_desc'      => $a['show_desc'],
+				'title_position' => $a['title_position'],
 			)
 		);
 	}
@@ -628,6 +648,7 @@ if ( ! function_exists( 'eluminate_standalone_register_post_type_init' ) ) {
 			),
 			'taxonomies'          => array( 'video_category', 'list_in' ),
 			'hierarchical'        => false,
+			'posts_per_page'      => 12,
 			'public'              => true,
 			'show_ui'             => true,
 			'show_in_menu'        => true,
@@ -718,5 +739,19 @@ add_action(
 				'type'        => 'textarea',
 			)
 		);
+	}
+);
+
+/**
+ * global change wp_query
+ */
+add_action(
+	'pre_get_posts',
+	function ( $query ) {
+		if ( ! is_admin() && $query->is_main_query() ) {
+			if ( ! is_home() ) {
+				$query->set( 'posts_per_page', 12 );
+			}
+		}
 	}
 );

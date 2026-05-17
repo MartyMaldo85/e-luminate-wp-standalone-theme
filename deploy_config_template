@@ -1,0 +1,9 @@
+ENVIRONMENT="production" | "stage"
+
+SSH_HOST="example.com"
+SSH_PORT=22
+SSH_REMOTE_THEME_PATH="/home/_www/wp-content/themes"
+SSH_USERNAME="admin"
+
+THEME_NAME="eluminate-standalone"
+DIST_DIR="./dist"

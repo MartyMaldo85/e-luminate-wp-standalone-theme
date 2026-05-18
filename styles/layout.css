@@ -78,7 +78,7 @@ body:has(#body-nav[data-selected]:not([data-selected=""])) .layout-body {
 
 .logo-menu-hint {
 	box-sizing: border-box;
-	color: var(--secondary-color);
+	color: var(--font-color);
 	font-family: var(--font), sans-serif;
 	font-size: 0.875rem;
 	line-height: 1.35;

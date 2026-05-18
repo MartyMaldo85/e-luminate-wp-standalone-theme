@@ -16,6 +16,7 @@ get_template_part( 'template-parts/layout', 'start', array( 'class' => array( 'f
 get_template_part( 'template-parts/header' );
 get_template_part( 'template-parts/layout', 'nav' );
 get_template_part( 'template-parts/main', 'start' );
+get_template_part( 'template-parts/logo', 'menu-hint' );
 ?>
 	<h2 class="main-title"><?php the_title(); ?></h2>
 <?php

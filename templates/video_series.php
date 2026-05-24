@@ -36,7 +36,11 @@ if ( have_posts() ) :
 	while ( have_posts() ) :
 		global $post;
 		the_post();
-		the_content();
+		?>
+		<div class="entry-content">
+			<?php the_content(); ?>
+		</div>
+		<?php
 	endwhile;
 else :
 	get_template_part( 'template-parts/404' );
@@ -45,35 +49,63 @@ endif;
 if ( class_exists( 'Niztech_Youtube_Client' ) ) {
 	$video_data = Niztech_Youtube_Client::video_content( $post->ID );
 	if ( ! empty( $video_data ) ) {
-		$terms = get_the_terms( $post->ID, 'list_in' );
-		foreach ( $video_data as $key => $video ) {
-			printf( '<article class="video-entry %s">', ( 0 === $key ) ? 'first' : '' );
-			printf( '<h3 class="title visually-hidden roboto-bold">%s</h3>', $video->title );
-			$img_url = $video->thumbnail_maxres_url ?? $video->thumbnail_standard_url ?? $video->thumbnail_default_url ?? $path_generic;
-			if ( 0 === $key ) {
-				printf( '<iframe class="video-iframe" src="https://www.youtube.com/embed/%s" frameborder="0" allowfullscreen></iframe>', $video->youtube_video_code );
-			} elseif ( ! empty( $img_url ) ) {
-				printf( '<a href="https://www.youtube.com/watch?v=%s"><img src="%s" alt="" class="video-entry-thumbnail" /></a>', $video->youtube_video_code, $img_url );
-			}
-			$line_clamp = ( 0 === $key ) ? 'line-clamp-5' : 'line-clamp-2';
-			printf( '<div class="description %s">%s</div>', $line_clamp, $video->description );
+		$terms            = get_the_terms( $post->ID, 'list_in' );
+		$series_shortlink = wp_get_shortlink( $post->ID );
+		$first_video      = $video_data[0];
 
-			if ( 0 !== $key ) {
-				printf( '<a href="https://www.youtube.com/watch?v=%s">%s</a>', $video->youtube_video_code, __( 'more on YouTube' ) );
-			}
-			printf( '</article>' );
-			if ( $terms && 0 === $key && count( $terms ) > 0 ) {
-				$term_links = array_map(
-					function ( $term ) {
-						return sprintf( '<a href="/listing/%s">%s</a>', $term->slug, $term->name );
-					},
-					$terms
+		echo '<article class="video-entry first">';
+		printf( '<h3 class="title visually-hidden roboto-bold">%s</h3>', esc_html( $first_video->title ) );
+		printf(
+			'<iframe class="video-iframe" src="https://www.youtube.com/embed/%s" frameborder="0" allowfullscreen></iframe>',
+			esc_attr( $first_video->youtube_video_code )
+		);
+		printf( '<div class="description line-clamp-5">%s</div>', wp_kses_post( $first_video->description ) );
+		echo '</article>';
+
+		if ( $terms && count( $terms ) > 0 ) {
+			$term_links = array_map(
+				function ( $term ) {
+					$link = get_term_link( $term );
+					if ( is_wp_error( $link ) ) {
+						return esc_html( $term->name );
+					}
+
+					return sprintf(
+						'<a href="%s">%s</a>',
+						esc_url( $link ),
+						esc_html( $term->name )
+					);
+				},
+				$terms
+			);
+		echo '<aside class="video-series-tags">';
+		echo esc_html__( 'Related topics: ', 'eluminate-standalone' );
+		echo implode( ', ', $term_links );
+			echo '</aside>';
+		}
+
+		if ( count( $video_data ) > 1 ) {
+			echo '<section class="shows-page-videos">';
+			foreach ( $video_data as $key => $video ) {
+				if ( 0 === $key ) {
+					continue;
+				}
+				$thumb_url = $video->thumbnail_maxres_url ?? $video->thumbnail_standard_url ?? $video->thumbnail_default_url ?? $path_generic;
+				$watch_url = sprintf( 'https://www.youtube.com/watch?v=%s', $video->youtube_video_code );
+				echo '<article class="video-series-entry">';
+				get_template_part(
+					'template-parts/video_series',
+					'poop',
+					array(
+						'video'     => $video,
+						'shortlink' => $series_shortlink,
+						'card_href' => $watch_url,
+						'thumb_url' => $thumb_url,
+					)
 				);
-				print( '<aside class="video-series-tags">' );
-				print( __( 'Related topics: ', 'eluminate-standalone' ) );
-				print( implode( ', ', $term_links ) );
-				print( '</aside>' );
+				echo '</article>';
 			}
+			echo '</section>';
 		}
 	}
 }

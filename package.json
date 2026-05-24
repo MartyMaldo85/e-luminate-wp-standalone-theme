@@ -12,10 +12,14 @@
 	},
 	"devDependencies": {
 		"@wordpress/browserslist-config": "^6.34.0",
+		"browser-sync": "^3.0.4",
 		"prettier": "^3.7.4"
 	},
 	"browserslist": [
 		"extends @wordpress/browserslist-config"
 	],
-	"scripts": {}
+	"scripts": {
+		"dev": "browser-sync start --proxy \"http://localhost:8888/wordpress/\" --files \"**/*\" --ignore \"node_modules/**,.git/**,vendor/**,*.log\"",
+		"dev:bs": "browser-sync start --proxy \"http://localhost:8888/wordpress/\" --files \"**/*\" --ignore \"node_modules/**,.git/**,vendor/**,*.log\""
+	}
 }

@@ -1,15 +1,40 @@
+/* Flat selectors — nested form was skipped by some engines, breaking scroll-lock and stacking tests. */
+html:has(#body-nav[data-menu-open="1"]),
+html:has(#body-nav[data-selected]:not([data-selected=""])),
+body:has(#body-nav[data-menu-open="1"]),
+body:has(#body-nav[data-selected]:not([data-selected=""])) {
+	height: 100%;
+	overflow: hidden;
+	overscroll-behavior: none;
+}
+
+/*
+ * Right-docked orbit can extend past the viewport width (rays + rotated AABB).
+ * Keep vertical scroll-lock but do not clip on the right at ≤480px.
+ */
+@media (width <= 480px) {
+	html:has(#body-nav[data-menu-open="1"]),
+	html:has(#body-nav[data-selected]:not([data-selected=""])),
+	body:has(#body-nav[data-menu-open="1"]),
+	body:has(#body-nav[data-selected]:not([data-selected=""])) {
+		overflow-x: visible;
+		overflow-y: hidden;
+	}
+}
+
 .body-nav {
 	align-self: end;
-	background-color: #ffffff;
-	border-top-left-radius: var(--border-radius);
-	border-top-right-radius: var(--border-radius);
+	background-color: transparent;
+	border-top-left-radius: 0;
+	border-top-right-radius: 0;
 	box-sizing: border-box;
-	column-gap: 2rem;
+	column-gap: 0;
 	display: flex;
 	grid-area: nav;
 	justify-content: center;
-	padding: 2rem 0;
+	padding: 0;
 	position: relative;
+	min-height: 0;
 
 	.btn {
 		background: none;
@@ -25,107 +50,819 @@
 		&.active {
 			text-decoration: underline;
 		}
+
+		&:focus,
+		&:focus-visible {
+			outline: none;
+		}
 	}
 }
 
-#body-sub-nav {
+/* Sibling of #body-nav (not inside it) so z-index can sit above .header-logo-cluster (200) without lifting the backdrop. */
+.nav-orbit-shell {
+	box-sizing: border-box;
+	inset: 0;
+	pointer-events: none;
+	position: fixed;
+	z-index: 210;
+}
+
+/* Logo-open: home + close fade/slide in (toggleLogoMenu adds .nav-orbit-shell--enter). */
+@keyframes nav-orbit-shell-control-enter {
+	from {
+		opacity: 0;
+		transform: translateY(-1.25rem);
+	}
+
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.nav-orbit-shell.nav-orbit-shell--enter .nav-orbit__home,
+.nav-orbit-shell.nav-orbit-shell--enter .nav-orbit__close {
+	animation: nav-orbit-shell-control-enter 0.48s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+	transition: none;
+}
+
+/* Logo-open shell: invisible slide only (toggle hidden until submenu). */
+@keyframes nav-orbit-shell-menu-toggle-enter {
+	from {
+		opacity: 0;
+		transform: translateX(-50%) translateY(-1.25rem) scale(1);
+	}
+
+	to {
+		opacity: 0;
+		transform: translateX(-50%) translateY(0) scale(1);
+	}
+}
+
+.nav-orbit-shell.nav-orbit-shell--enter .nav-orbit__menu-toggle {
+	animation: nav-orbit-shell-menu-toggle-enter 0.48s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+	pointer-events: none;
+	transition: none;
+}
+
+/* Submenu: menu control fades in + slides down when logo is hidden (hideSiteLogo). */
+@keyframes nav-orbit-menu-toggle-submenu-reveal {
+	from {
+		opacity: 0;
+		transform: translateX(-50%) translateY(-1.25rem) scale(1);
+	}
+
+	to {
+		opacity: 1;
+		transform: translateX(-50%) translateY(0) scale(1);
+	}
+}
+
+body:has(#body-nav[data-hide-site-logo="1"]) .nav-orbit__menu-toggle.nav-orbit__menu-toggle--submenu-reveal {
+	animation: nav-orbit-menu-toggle-submenu-reveal 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+	pointer-events: none;
+	transition: none;
+}
+
+/* Back to main orbit: fade out + slide up with logo reveal (returnToMainMenu). */
+@keyframes nav-orbit-menu-toggle-exit {
+	from {
+		opacity: 1;
+		transform: translateX(-50%) translateY(0) scale(1);
+	}
+
+	to {
+		opacity: 0;
+		transform: translateX(-50%) translateY(-1.25rem) scale(1);
+	}
+}
+
+body:has(#body-nav[data-hide-site-logo="1"]) .nav-orbit__menu-toggle.nav-orbit__menu-toggle--exit {
+	animation: nav-orbit-menu-toggle-exit 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+	pointer-events: none;
+	transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.nav-orbit-shell.nav-orbit-shell--enter .nav-orbit__home,
+	.nav-orbit-shell.nav-orbit-shell--enter .nav-orbit__close {
+		animation: none;
+		opacity: 1;
+		transform: none;
+	}
+
+	.nav-orbit-shell.nav-orbit-shell--enter .nav-orbit__menu-toggle {
+		animation: none;
+		opacity: 0;
+		transform: translateX(-50%) scale(1);
+	}
+
+	body:has(#body-nav[data-hide-site-logo="1"]) .nav-orbit__menu-toggle.nav-orbit__menu-toggle--submenu-reveal,
+	body:has(#body-nav[data-hide-site-logo="1"]) .nav-orbit__menu-toggle.nav-orbit__menu-toggle--exit {
+		animation: none;
+	}
+}
+
+.nav-orbit__home,
+.nav-orbit__close {
+	align-items: center;
+	background: transparent;
+	border: none;
+	border-radius: 999px;
+	box-shadow: none;
+	color: var(--primary-color);
+	cursor: pointer;
+	display: flex;
+	flex-direction: column;
+	font-family: var(--font), sans-serif;
+	font-size: 0.75rem;
+	font-weight: 600;
+	gap: 0.25rem;
+	justify-content: center;
+	line-height: 1;
+	min-height: 3.25rem;
+	min-width: 3.25rem;
+	padding: 0.5rem 0.65rem;
+	pointer-events: auto;
+	position: fixed;
+	text-decoration: none;
+	text-transform: lowercase;
+	top: max(1rem, env(safe-area-inset-top));
+	transform: scale(1);
+	transform-origin: center;
+	transition: transform 0.25s ease;
+	z-index: 212;
+}
+
+.nav-orbit__home:hover,
+.nav-orbit__home:focus,
+.nav-orbit__home:focus-visible,
+.nav-orbit__close:hover,
+.nav-orbit__close:focus,
+.nav-orbit__close:focus-visible {
+	outline: none;
+	text-decoration: none;
+	transform: scale(1.1);
+}
+
+.nav-orbit__menu-toggle:hover,
+.nav-orbit__menu-toggle:focus,
+.nav-orbit__menu-toggle:focus-visible {
+	outline: none;
+	text-decoration: none;
+	transform: translateX(-50%) scale(1.1);
+}
+
+.nav-orbit__menu-toggle {
+	align-items: center;
+	background: transparent;
+	border: none;
+	border-radius: 999px;
+	box-shadow: none;
+	color: var(--primary-color);
+	cursor: pointer;
+	display: flex;
+	flex-direction: column;
+	font-family: var(--font), sans-serif;
+	font-size: 0.75rem;
+	font-weight: 600;
+	gap: 0.25rem;
+	justify-content: center;
+	left: 50%;
+	line-height: 1;
+	min-height: 3.25rem;
+	min-width: 3.25rem;
+	opacity: 0;
+	padding: 0.5rem 0.65rem;
+	pointer-events: none;
+	position: fixed;
+	text-decoration: none;
+	text-transform: lowercase;
+	top: max(1rem, env(safe-area-inset-top));
+	transform: translateX(-50%) scale(1);
+	transform-origin: center;
+	transition: transform 0.25s ease, opacity 0.25s ease-in-out;
+	z-index: 212;
+}
+
+.nav-orbit__home,
+.nav-orbit__menu-toggle,
+.nav-orbit__close {
+	min-width: 4rem;
+	width: 4rem;
+	display: grid;
+	grid-template-rows: 1.75rem 0.8rem;
+	justify-items: center;
+	row-gap: 0.25rem;
+}
+
+.nav-orbit__home {
+	left: calc(max(1rem, env(safe-area-inset-left, 0px)) - 0.75rem);
+}
+
+.nav-orbit__close {
+	/* `left` (not `right`) so `left` can animate at the 800px cluster breakpoint. */
+	left: calc(100vw - 4rem - max(1rem, env(safe-area-inset-right, 0px)));
+	right: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.nav-orbit__home,
+	.nav-orbit__close {
+		transition: transform 0.25s ease;
+	}
+
+	.nav-orbit__menu-toggle {
+		transition: transform 0.25s ease, opacity 0.25s ease-in-out;
+	}
+}
+
+/* Fade in when the site logo graphic is hidden (user has moved past the main orbit). */
+body:has(#body-nav[data-hide-site-logo="1"]) .nav-orbit__menu-toggle {
+	opacity: 1;
+	pointer-events: auto;
+}
+
+.nav-orbit__home img,
+.nav-orbit__close img {
+	display: block;
+	height: 1.75rem;
+	object-fit: contain;
+	width: 1.75rem;
+}
+
+.nav-orbit__menu-icon {
+	display: block;
+	fill: var(--primary-color);
+	height: 1.75rem;
+	transform: scale(1.25);
+	transform-origin: center;
+	width: 1.75rem;
+}
+
+.nav-orbit__menu-icon .orbit-dots {
+	transform-box: fill-box;
+	transform-origin: center;
+	transition: transform 0.4s ease;
+}
+
+.nav-orbit__menu-toggle:hover .nav-orbit__menu-icon .orbit-dots,
+.nav-orbit__menu-toggle:focus .nav-orbit__menu-icon .orbit-dots,
+.nav-orbit__menu-toggle:focus-visible .nav-orbit__menu-icon .orbit-dots {
+	transform: rotate(180deg);
+}
+
+.nav-orbit__home-label,
+.nav-orbit__menu-label,
+.nav-orbit__close-label {
+	align-items: flex-end;
+	color: var(--primary-color);
+	display: flex;
+	height: 0.8rem;
+	justify-content: center;
+	line-height: 1;
+	opacity: 0;
+	text-align: center;
+	transform: translateY(-0.35rem);
+	transition: opacity 0.25s ease, transform 0.25s ease;
+	width: 100%;
+}
+
+.nav-orbit__home:hover .nav-orbit__home-label,
+.nav-orbit__home:focus .nav-orbit__home-label,
+.nav-orbit__home:focus-visible .nav-orbit__home-label,
+.nav-orbit__menu-toggle:hover .nav-orbit__menu-label,
+.nav-orbit__menu-toggle:focus .nav-orbit__menu-label,
+.nav-orbit__menu-toggle:focus-visible .nav-orbit__menu-label,
+.nav-orbit__close:hover .nav-orbit__close-label,
+.nav-orbit__close:focus .nav-orbit__close-label,
+.nav-orbit__close:focus-visible .nav-orbit__close-label {
+	opacity: 1;
+	transform: translateY(0);
+}
+
+.header-logo-cluster a.logo:focus,
+.header-logo-cluster a.logo:focus-visible {
+	outline: none;
+}
+
+@keyframes orbit-hub-menu-enter {
+	from {
+		opacity: 0;
+		transform: translate(-50%, calc(-50% - 10%)) scale(0.8);
+	}
+
+	to {
+		opacity: 1;
+		transform: translate(-50%, -50%) scale(1);
+	}
+}
+
+.header-logo-cluster .orbit-hub {
+	--orbit-n: 8;
+	--orbit-r: clamp(8.5rem, 24vw, 15.5rem);
+	--orbit-start: 0deg;
+	aspect-ratio: 1;
+	box-sizing: border-box;
+	left: 50%;
+	margin: 0;
+	max-height: min(calc(100vw - 2 * var(--orbit-viewport-inline-gap, 1rem)), 46rem);
+	max-width: min(calc(100vw - 2 * var(--orbit-viewport-inline-gap, 1rem)), 46rem);
+	opacity: 0;
+	pointer-events: none;
 	position: absolute;
-	top: 5rem;
-	z-index: 100;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	/* Opacity/visibility when closing; during logo-open entrance, .orbit-hub--enter uses keyframes (no transition). */
+	transition: opacity 0.22s ease-out, visibility 0.22s ease-out;
+	visibility: hidden;
+	width: min(calc(100vw - 2 * var(--orbit-viewport-inline-gap, 1rem)), 46rem);
+	/* Above inactive submenus (they share the same ring geometry; do not stack submenus over the hub). */
+	z-index: 3;
+}
 
-	.menu {
-		background-color: rgba(255, 255, 255, 0.85);
-		backdrop-filter: blur(10px);
-		border-radius: var(--border-radius);
-		box-sizing: border-box;
-		box-shadow: 0 5px 20px var(--primary-color-dark);
-		max-height: 0;
-		overflow: hidden;
-		transition: max-height 0.15s ease-out;
+body:has(#body-nav[data-menu-open="1"]):not(:has(#body-nav[data-selected]:not([data-selected=""]))) .header-logo-cluster .orbit-hub {
+	/* Hub box stays below logo/rays visually; gaps pass through to the logo. Buttons keep their own pointer-events. */
+	pointer-events: none;
+	visibility: visible;
+}
 
-		.title {
-			border-bottom: 1px solid var(--secondary-color);
-			font-family: var(--slab-font), serif;
-			font-size: 1rem;
-			margin: 0.5rem 0;
-			padding: 0.5rem;
-			text-transform: uppercase;
-		}
+/* Full opacity whenever main hub is shown but not playing the enter animation (e.g. back from submenu). */
+body:has(#body-nav[data-menu-open="1"]):not(:has(#body-nav[data-selected]:not([data-selected=""]))) .header-logo-cluster .orbit-hub:not(.orbit-hub--enter) {
+	opacity: 1;
+}
 
-		.menu-item {
-			font-family: var(--font), sans-serif;
-			font-size: 1.1rem;
-			padding: 0.5rem;
-			text-transform: uppercase;
+/* Fade + slide from 10% above + scale 0.8→1; toggled from toggleLogoMenu() so opacity transition does not override keyframes. */
+body:has(#body-nav[data-menu-open="1"]):not(:has(#body-nav[data-selected]:not([data-selected=""]))) .header-logo-cluster .orbit-hub.orbit-hub--enter {
+	animation: orbit-hub-menu-enter 0.48s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+	transition: none;
+}
 
-			&:hover {
-				border-radius: calc(var(--border-radius) / 2);
-				background-color: var(--primary-color-light);
+@media (prefers-reduced-motion: reduce) {
+	body:has(#body-nav[data-menu-open="1"]):not(:has(#body-nav[data-selected]:not([data-selected=""]))) .header-logo-cluster .orbit-hub.orbit-hub--enter {
+		animation: none;
+		opacity: 1;
+		transform: translate(-50%, -50%) scale(1);
+	}
+}
 
-				a {
-					color: var(--tertiary-color);
-					text-decoration: none;
-				}
-			}
-		}
+body:has(#body-nav[data-selected]:not([data-selected=""])) .header-logo-cluster .orbit-hub {
+	opacity: 0;
+	pointer-events: none;
+	visibility: hidden;
+}
 
-		ul {
-			list-style: none;
-		}
+@keyframes orbit-section-title-enter {
+	from {
+		opacity: 0;
+		transform: translate(-50%, calc(-50% - 10%));
 	}
 
-	.btn-close {
-		background-image: url("../assets/close.svg");
-		background-repeat: no-repeat;
-		background-size: contain;
-		border-radius: 0.25rem;
-		display: none;
-		height: 2rem;
-		position: absolute;
-		right: 1rem;
-		top: 0.7rem;
-		width: 1.5rem;
+	to {
+		opacity: 1;
+		transform: translate(-50%, -50%);
+	}
+}
+
+.header-logo-cluster .orbit-section-title {
+	/* Max fit between opposite pill inner edges: 2×radius minus one pill diameter. */
+	--orbit-title-r: clamp(8.5rem, 24vw, 15.5rem);
+	--orbit-title-pill-size: clamp(5.25rem, 16vw, 8.25rem);
+	--orbit-title-max-inline: calc(2 * var(--orbit-title-r) - var(--orbit-title-pill-size));
+	color: var(--primary-color);
+	display: block;
+	font-family: var(--slab-font), serif;
+	/* svw: stable small viewport — avoids jitter when dynamic vw changes during scroll (same as .logo width). */
+	font-size: clamp(1.75rem, 6vw, 2.5rem);
+	font-size: clamp(1.75rem, 6svw, 2.5rem);
+	font-weight: 700;
+	left: 50%;
+	letter-spacing: 0.02em;
+	line-height: 1;
+	max-width: var(--orbit-title-max-inline);
+	opacity: 0;
+	pointer-events: none;
+	position: absolute;
+	text-transform: lowercase;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	transition: opacity 0.2s ease-in;
+	white-space: nowrap;
+	z-index: 4;
+}
+
+.header-logo-cluster .orbit-section-title.orbit-section-title--enter {
+	animation: orbit-section-title-enter 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+	transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.header-logo-cluster .orbit-section-title.orbit-section-title--enter {
+		animation: none;
+		opacity: 1;
+		transform: translate(-50%, -50%);
+	}
+}
+
+.header-logo-cluster .orbit-section-title__main {
+	display: -webkit-box;
+	line-height: 1;
+	overflow: hidden;
+	overflow-wrap: anywhere;
+	text-overflow: ellipsis;
+	white-space: normal;
+	line-clamp: 2;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
+}
+
+/* In-flow stack when a subtitle exists: avoids top: calc(100% + …), which tracked vw-driven slab height and jumped on scroll. */
+.header-logo-cluster .orbit-section-title[data-has-sub="1"] {
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	text-align: center;
+}
+
+.header-logo-cluster .orbit-section-title__divider {
+	background-color: rgba(95, 137, 195, 0.35);
+	content: "";
+	height: 2px;
+	left: 0;
+	opacity: 0;
+	position: absolute;
+	top: calc(100% + 0.25rem);
+	transform: none;
+	transition: opacity 0.2s ease;
+	width: 100%;
+}
+
+.header-logo-cluster .orbit-section-title[data-has-sub="1"] .orbit-section-title__divider {
+	position: static;
+	left: auto;
+	top: auto;
+	margin-top: 0.25rem;
+	opacity: 1;
+}
+
+.header-logo-cluster .orbit-section-title__sub {
+	color: var(--primary-color-light);
+	display: -webkit-box;
+	font-family: var(--font), sans-serif;
+	font-size: clamp(0.72rem, 2.0625vw, 1.25rem);
+	font-size: clamp(0.72rem, 2.0625svw, 1.25rem);
+	font-weight: normal;
+	left: 50%;
+	letter-spacing: 0.08em;
+	line-clamp: 2;
+	line-height: 1;
+	max-width: 100%;
+	opacity: 0;
+	overflow: hidden;
+	overflow-wrap: anywhere;
+	position: absolute;
+	text-transform: uppercase;
+	text-overflow: ellipsis;
+	top: calc(100% + 0.8rem);
+	transform: translate(-50%, -0.45rem);
+	/* Do not transition transform: absolute translate(-50%,…) vs flex translateY(…) interpolates badly on first paint. */
+	transition: opacity 0.28s ease;
+	white-space: normal;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
+}
+
+.header-logo-cluster .orbit-section-title[data-has-sub="1"] .orbit-section-title__sub {
+	position: static;
+	left: auto;
+	top: auto;
+	margin-top: calc(0.4rem - 2px);
+	transform: translateY(-0.45rem);
+}
+
+.header-logo-cluster .orbit-section-title[data-has-sub="1"] .orbit-section-title__sub:not(.orbit-section-title__sub--enter) {
+	opacity: 1;
+	transform: translateY(0);
+}
+
+@keyframes orbit-section-title-sub-enter {
+	from {
+		opacity: 0;
+		transform: translate(-50%, -0.45rem);
 	}
 
-	.menu.active {
-		max-height: 80vh;
-		transition: max-height 0.15s ease-in;
-		padding: 0 1rem 1rem 1rem;
+	to {
+		opacity: 1;
+		transform: translate(-50%, 0);
+	}
+}
 
-		&.about-us {
-			display: block;
-		}
-
-		&.list-in {
-			display: flex;
-			flex-direction: row;
-			column-gap: 1rem;
-			width: 60vw;
-
-			.topic {
-				width: 100%;
-			}
-		}
-
-		.menu-list {
-			overflow-y: scroll;
-		}
+@keyframes orbit-section-title-sub-enter-stacked {
+	from {
+		opacity: 0;
+		transform: translateY(-0.45rem);
 	}
 
-	.menu {
-		&.list-in {
-			.topic {
-				.menu-list {
-					columns: 2;
-				}
-			}
-
-			.shows {
-				flex-basis: 30%;
-				flex-shrink: 0;
-			}
-		}
+	to {
+		opacity: 1;
+		transform: translateY(0);
 	}
+}
+
+.header-logo-cluster .orbit-section-title__sub.orbit-section-title__sub--enter {
+	animation: orbit-section-title-sub-enter 0.34s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.header-logo-cluster .orbit-section-title[data-has-sub="1"] .orbit-section-title__sub.orbit-section-title__sub--enter {
+	animation: orbit-section-title-sub-enter-stacked 0.34s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.header-logo-cluster .orbit-section-title__sub.orbit-section-title__sub--enter {
+		animation: none;
+		opacity: 1;
+		transform: translate(-50%, 0);
+	}
+
+	.header-logo-cluster .orbit-section-title[data-has-sub="1"] .orbit-section-title__sub.orbit-section-title__sub--enter {
+		transform: translateY(0);
+	}
+}
+
+.header-logo-cluster .orbit-submenu {
+	--orbit-n: 8;
+	--orbit-r: clamp(8.5rem, 24vw, 15.5rem);
+	--orbit-start: 0deg;
+	inset: 0;
+	left: 50%;
+	max-height: min(calc(100vw - 2 * var(--orbit-viewport-inline-gap, 1rem)), 44rem);
+	max-width: min(calc(100vw - 2 * var(--orbit-viewport-inline-gap, 1rem)), 44rem);
+	opacity: 0;
+	pointer-events: none;
+	position: absolute;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	transition: opacity 0.2s ease-in;
+	visibility: hidden;
+	width: min(calc(100vw - 2 * var(--orbit-viewport-inline-gap, 1rem)), 44rem);
+	/* Default below .orbit-hub so hidden submenu layers never steal clicks from main menu. */
+	z-index: 1;
+}
+
+.header-logo-cluster .orbit-submenu .btn-orbit {
+	pointer-events: none;
+}
+
+/* Submenu stack caps: keep orbit anchor, hide pill + label (layout-nav). */
+.header-logo-cluster .orbit-submenu--pages .btn-page-orbit.btn-orbit--label-suppressed {
+	background: transparent;
+	box-shadow: none;
+	color: transparent;
+	cursor: default;
+	opacity: 0;
+	pointer-events: none;
+}
+
+.header-logo-cluster .orbit-submenu--pages[data-motion="free"] .btn-page-orbit {
+	--orbit-hover-scale: 1;
+	pointer-events: none;
+	transition: none;
+}
+
+.header-logo-cluster .orbit-submenu--pages[data-motion="idle"] .btn-page-orbit {
+	pointer-events: auto;
+	transition: transform 220ms ease, box-shadow 0.28s ease, background-color 0.28s ease;
+}
+
+/* Lattice settle after wheel/touch idle: ease transform into snap (free mode keeps transition:none). */
+.header-logo-cluster .orbit-submenu--pages[data-motion="step"] .btn-page-orbit {
+	pointer-events: auto;
+	transition:
+		transform 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+		box-shadow 0.22s ease,
+		background-color 0.22s ease;
+}
+
+.header-logo-cluster .orbit-submenu--pages[data-motion="free"] .btn-page-orbit:hover,
+.header-logo-cluster .orbit-submenu--pages[data-motion="free"] .btn-page-orbit:focus,
+.header-logo-cluster .orbit-submenu--pages[data-motion="free"] .btn-page-orbit:focus-visible {
+	--orbit-hover-scale: 1;
+	box-shadow: 0 8px 28px rgba(0, 93, 176, 0.22);
+	outline: none;
+}
+
+.header-logo-cluster .btn-orbit {
+	--orbit-a: calc(var(--orbit-start) + (360deg / var(--orbit-n)) * var(--orbit-i));
+	--orbit-hover-scale: 1;
+	align-items: center;
+	aspect-ratio: 1;
+	background-color: rgba(255, 255, 255, 0.8);
+	border: none;
+	border-radius: 50%;
+	box-shadow: 0 8px 28px rgba(0, 93, 176, 0.22);
+	box-sizing: border-box;
+	color: var(--primary-color-light);
+	cursor: pointer;
+	display: flex;
+	font-family: var(--font), sans-serif;
+	font-size: clamp(0.7rem, 2.1vw, 0.95rem);
+	font-weight: normal;
+	hyphens: auto;
+	justify-content: center;
+	left: 50%;
+	line-height: 1.15;
+	max-height: clamp(5.25rem, 16vw, 8.25rem);
+	max-width: clamp(5.25rem, 16vw, 8.25rem);
+	overflow: hidden;
+	overflow-wrap: anywhere;
+	padding: 0.65rem;
+	pointer-events: none;
+	position: absolute;
+	text-align: center;
+	text-decoration: none;
+	text-transform: lowercase;
+	text-wrap: balance;
+	top: 50%;
+	transform: translate(-50%, -50%) rotate(var(--orbit-a)) translateY(calc(-1 * var(--orbit-r))) rotate(calc(-1 * var(--orbit-a))) scale(var(--orbit-hover-scale));
+	transition: transform 0.28s ease, box-shadow 0.28s ease, background-color 0.28s ease;
+	white-space: normal;
+	word-break: break-word;
+	width: clamp(5.25rem, 16vw, 8.25rem);
+}
+
+.header-logo-cluster .btn-orbit__label {
+	display: -webkit-box;
+	line-clamp: 3;
+	overflow: hidden;
+	overflow-wrap: anywhere;
+	text-overflow: ellipsis;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 3;
+	word-break: break-word;
+}
+
+.header-logo-cluster a.btn-orbit:visited {
+	color: var(--primary-color-light);
+}
+
+.header-logo-cluster .btn-orbit:not(.btn-orbit--phantom):not(.btn-orbit--label-suppressed):hover,
+.header-logo-cluster .btn-orbit:not(.btn-orbit--phantom):not(.btn-orbit--label-suppressed):focus,
+.header-logo-cluster .btn-orbit:not(.btn-orbit--phantom):not(.btn-orbit--label-suppressed):focus-visible {
+	--orbit-hover-scale: 1.1;
+	background-color: rgba(255, 255, 255, 1);
+	box-shadow:
+		0 8px 24px rgba(0, 93, 176, 0.22),
+		0 0 28px 14px rgba(255, 249, 232, 0.37),
+		0 0 52px 32px rgba(255, 237, 194, 0.17),
+		0 0 88px 52px rgba(255, 233, 178, 0.085);
+	outline: none;
+	z-index: 6;
+}
+
+body:has(#body-nav[data-selected="page-submenu"]) .header-logo-cluster .orbit-section-title {
+	pointer-events: none;
+	visibility: visible;
+	z-index: 4;
+}
+
+body:has(#body-nav[data-selected="page-submenu"]) .header-logo-cluster .orbit-section-title:not(.orbit-section-title--enter) {
+	opacity: 1;
+}
+
+body:has(#body-nav[data-selected="page-submenu"]) .header-logo-cluster .orbit-submenu--pages {
+	opacity: 1;
+	pointer-events: auto;
+	visibility: visible;
+	z-index: 4;
+}
+
+/* Topic ring entrance: fade only (no vertical slide; layout-nav triggerOrbitSubmenuPagesEnter). */
+@keyframes orbit-submenu-pages-enter {
+	from {
+		opacity: 0;
+	}
+
+	to {
+		opacity: 1;
+	}
+}
+
+.header-logo-cluster .orbit-submenu--pages.orbit-submenu-pages--enter {
+	animation: orbit-submenu-pages-enter 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+	transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.header-logo-cluster .orbit-submenu--pages.orbit-submenu-pages--enter {
+		animation: none;
+		opacity: 1;
+		transform: translate(-50%, -50%);
+	}
+}
+
+body:has(#body-nav[data-selected="page-submenu"]) .header-logo-cluster .orbit-submenu--pages .btn-orbit {
+	pointer-events: auto;
+}
+
+/* Main orbit hub: match submenu motion modes for wheel / rubber / snap. */
+.header-logo-cluster .orbit-hub[data-motion="free"] .btn-orbit {
+	--orbit-hover-scale: 1;
+	pointer-events: none;
+	transition: none;
+}
+
+.header-logo-cluster .orbit-hub[data-motion="idle"] .btn-orbit {
+	pointer-events: auto;
+	transition: transform 220ms ease, box-shadow 0.28s ease, background-color 0.28s ease;
+}
+
+.header-logo-cluster .orbit-hub[data-motion="step"] .btn-orbit {
+	pointer-events: auto;
+	transition:
+		transform 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+		box-shadow 0.22s ease,
+		background-color 0.22s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.header-logo-cluster .orbit-hub[data-motion="step"] .btn-orbit,
+	.header-logo-cluster .orbit-submenu--pages[data-motion="step"] .btn-page-orbit {
+		transition:
+			transform 0.14s ease-out,
+			box-shadow 0.22s ease,
+			background-color 0.22s ease;
+	}
+}
+
+.header-logo-cluster .orbit-hub[data-motion="free"] .btn-orbit:hover,
+.header-logo-cluster .orbit-hub[data-motion="free"] .btn-orbit:focus,
+.header-logo-cluster .orbit-hub[data-motion="free"] .btn-orbit:focus-visible {
+	--orbit-hover-scale: 1;
+	box-shadow: 0 8px 28px rgba(0, 93, 176, 0.22);
+	outline: none;
+}
+
+.header-logo-cluster .orbit-hub .btn-orbit.btn-orbit--label-suppressed {
+	background: transparent;
+	box-shadow: none;
+	color: transparent;
+	cursor: default;
+	opacity: 0;
+	pointer-events: none;
+}
+
+.orbit-hub .btn-orbit {
+	--orbit-raise: 0px;
+	pointer-events: auto;
+	transform: translate(-50%, -50%) rotate(var(--orbit-a)) translateY(calc(-1 * (var(--orbit-r) + var(--orbit-raise)))) rotate(calc(-1 * var(--orbit-a))) scale(var(--orbit-hover-scale));
+}
+
+/* Spacer slots: 8th ring step (45°); hidden by pushing pills far off the active ring via --orbit-raise. */
+.header-logo-cluster .btn-orbit--phantom {
+	--orbit-raise: min(50vmin, 28rem);
+	aspect-ratio: auto;
+	background: none;
+	border: 0;
+	border-radius: 0;
+	box-shadow: none;
+	color: transparent;
+	cursor: default;
+	display: block;
+	font-size: 0;
+	height: 1px;
+	line-height: 0;
+	margin: 0;
+	max-height: 1px;
+	max-width: 1px;
+	min-height: 0;
+	min-width: 0;
+	opacity: 0;
+	overflow: hidden;
+	padding: 0;
+	pointer-events: none;
+	visibility: hidden;
+	width: 1px;
+}
+
+.orbit-hub .btn-main-menu.active {
+	box-shadow: 0 8px 28px rgba(0, 93, 176, 0.22);
+	outline: none;
+	text-decoration: none;
+	transition: transform 0.28s ease, box-shadow 0.28s ease, background-color 0.28s ease;
+}
+
+.orbit-hub .btn-main-menu.btn-orbit.active:hover,
+.orbit-hub .btn-main-menu.btn-orbit.active:focus,
+.orbit-hub .btn-main-menu.btn-orbit.active:focus-visible {
+	--orbit-hover-scale: 1.1;
+	background-color: rgba(255, 255, 255, 1);
+	box-shadow:
+		0 8px 24px rgba(0, 93, 176, 0.22),
+		0 0 28px 14px rgba(255, 249, 232, 0.37),
+		0 0 52px 32px rgba(255, 237, 194, 0.17),
+		0 0 88px 52px rgba(255, 233, 178, 0.085);
+	outline: none;
+	z-index: 6;
 }
 
 @media (width <= 900px) {
@@ -133,33 +870,341 @@
 		position: unset;
 	}
 
-	#body-sub-nav {
+	/*
+	 * Keep pills inside the same horizontal band as .orbit-hub width (100vw − 2×gap).
+	 * Plain 40vw often exceeds half that box once pill size is added — especially on narrow phones.
+	 */
+	.header-logo-cluster .orbit-hub {
+		/* ~half .btn-orbit width on small screens; keeps outer pill edge inside viewport minus --orbit-viewport-inline-gap. */
+		--orbit-r: clamp(
+			7.5rem,
+			min(
+				40vw,
+				calc(
+					50vw - var(--orbit-viewport-inline-gap, 1rem) - clamp(2.375rem, 11vw, 3.5rem)
+				)
+			),
+			12.5rem
+		);
+	}
+
+	.header-logo-cluster .orbit-submenu {
+		--orbit-r: clamp(
+			7.5rem,
+			min(
+				40vw,
+				calc(
+					50vw - var(--orbit-viewport-inline-gap, 1rem) - clamp(2.375rem, 11vw, 3.5rem)
+				)
+			),
+			12.5rem
+		);
+	}
+
+	.header-logo-cluster .btn-orbit {
+		font-size: clamp(0.65rem, 3.2vw, 0.85rem);
+		max-height: clamp(4.75rem, 22vw, 7rem);
+		max-width: clamp(4.75rem, 22vw, 7rem);
+		padding: 0.5rem;
+		width: clamp(4.75rem, 22vw, 7rem);
+	}
+
+	.header-logo-cluster .orbit-section-title {
+		--orbit-title-r: clamp(
+			7.5rem,
+			min(
+				40vw,
+				calc(
+					50vw - var(--orbit-viewport-inline-gap, 1rem) - clamp(2.375rem, 11vw, 3.5rem)
+				)
+			),
+			12.5rem
+		);
+		--orbit-title-pill-size: clamp(4.75rem, 22vw, 7rem);
+	}
+
+}
+
+/*
+ * Chrome row: [ Home ] [ menu ] [ close ] around viewport center (controls are 4rem wide; menu uses translateX(-50%)).
+ * Gap includes +1rem clear space between each outer control and the menu pill.
+ */
+@media (width <= 800px) {
+	.nav-orbit-shell {
+		--nav-orbit-cluster-gap: calc(clamp(0.25rem, 2vw, 0.75rem) + 1rem);
+	}
+
+	.nav-orbit__home {
+		left: calc(50% - 2rem - var(--nav-orbit-cluster-gap) - 4rem - 0.75rem);
+		right: auto;
+	}
+
+	.nav-orbit__close {
+		left: calc(50% + 2rem + var(--nav-orbit-cluster-gap));
+		right: auto;
+	}
+}
+
+/* Animate corner/cluster transitions across breakpoints (including >800px return to corners). */
+@media (prefers-reduced-motion: no-preference) {
+	.nav-orbit__home,
+	.nav-orbit__close {
+		transition:
+			top 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+			left 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+			transform 0.25s ease;
+	}
+}
+
+/* Very narrow: park home / menu / close in one bottom row (menu centered between home and close). */
+@keyframes nav-orbit-controls-bottom-reveal {
+	from {
+		opacity: 0.72;
+	}
+
+	to {
+		opacity: 1;
+	}
+}
+
+@media (width <= 480px) {
+	.header-logo-cluster .orbit-section-title {
+		font-size: 1.75rem;
+		--orbit-title-max-inline: calc(2 * var(--orbit-title-r) - var(--orbit-title-pill-size) - 3rem);
+	}
+
+	/* Freeze orbit pills at their minimum mobile size. */
+	.header-logo-cluster .btn-orbit {
+		max-height: 5rem;
+		max-width: 5rem;
+		width: 5rem;
+	}
+
+	.nav-orbit__home {
+		/* Match wide chrome: same 0.75rem left nudge as .nav-orbit__home default. */
+		left: calc(max(1rem, env(safe-area-inset-left, 0px)) - 0.75rem);
+		right: auto;
+		top: calc(100vh - 5.25rem - max(0.5rem, env(safe-area-inset-bottom, 0px)));
+		top: calc(100svh - 5.25rem - max(0.5rem, env(safe-area-inset-bottom, 0px)));
+	}
+
+	.nav-orbit__close {
+		left: calc(100vw - 4rem - max(0.75rem, env(safe-area-inset-right, 0px)));
+		right: auto;
+		top: calc(100vh - 5.25rem - max(0.5rem, env(safe-area-inset-bottom, 0px)));
+		top: calc(100svh - 5.25rem - max(0.5rem, env(safe-area-inset-bottom, 0px)));
+	}
+
+	/*
+	 * Midpoint between home’s outer edge and close’s inner edge (4rem controls; same insets as siblings).
+	 * translateX(-50%) centers the pill on that point.
+	 */
+	.nav-orbit__menu-toggle {
+		left: calc(
+			(
+					100vw + max(1rem, env(safe-area-inset-left, 0px)) - 0.75rem -
+						max(0.75rem, env(safe-area-inset-right, 0px))
+				) /
+				2
+		);
+		right: auto;
+		top: calc(100vh - 5.25rem - max(0.5rem, env(safe-area-inset-bottom, 0px)));
+		top: calc(100svh - 5.25rem - max(0.5rem, env(safe-area-inset-bottom, 0px)));
+	}
+
+	/* Touch-first: keep text under icons readable without hover/focus. */
+	.nav-orbit__home-label,
+	.nav-orbit__menu-label,
+	.nav-orbit__close-label {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+@media (width <= 480px) and (prefers-reduced-motion: no-preference) {
+	.nav-orbit__home,
+	.nav-orbit__close {
+		animation: nav-orbit-controls-bottom-reveal 0.42s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+	}
+
+	/* Match home/close when not in a dedicated shell/submenu keyframe. */
+	.nav-orbit__menu-toggle {
+		transition:
+			top 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+			left 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+			transform 0.25s ease,
+			opacity 0.25s ease-in-out;
+	}
+}
+
+@media (width <= 480px) and (prefers-reduced-motion: reduce) {
+	.nav-orbit__home,
+	.nav-orbit__close {
+		animation: none;
+	}
+}
+
+/*
+ * ≤480px + menu open: spin pane docked right (orbit center = fixed calc from viewport right),
+ * vertically centered; rotate 90° about pane center; logo absolutely centered on hub; counter-rotate
+ * section titles and pills so type stays horizontal.
+ */
+@keyframes orbit-section-title-enter-right-dock {
+	from {
+		opacity: 0;
+		transform: translate(-50%, calc(-50% - 10%)) rotate(-90deg);
+	}
+
+	to {
+		opacity: 1;
+		transform: translate(-50%, -50%) rotate(-90deg);
+	}
+}
+
+@media (width <= 480px) {
+	/*
+	 * Shared dock geometry (body): backdrop radials can share --menu-orbit-center-x with menu.css positioning.
+	 */
+	body:has(#body-nav[data-menu-open="1"]) {
+		/*
+		 * Hug the right edge: subtract a vw/rem bleed from safe-area so the pane can sit past the old
+		 * “flush” line (negative right when inset is 0). Smaller vw cap shifts orbit center farther right.
+		 */
+		--spin-dock-edge: calc(
+			env(safe-area-inset-right, 0px) - clamp(0.625rem, 6.5vw, 2rem)
+		);
+		/*
+		 * Keep the same right anchor but preserve a fixed left gutter.
+		 * As viewport narrows, this still shrinks responsively while holding >=1rem left space.
+		 */
+		--spin-left-gutter: max(1rem, env(safe-area-inset-left, 0px));
+		--spin-dock-size: min(
+			46rem,
+			calc(100svw - var(--spin-dock-edge) - var(--spin-left-gutter))
+		);
+		/*
+		 * Keep the actual orbit center on the historical right-docked geometry so controls do not drift left
+		 * when the pane width expands toward the left edge.
+		 */
+		--spin-orbit-size: min(
+			calc(min(100svw, 100svh) - 2 * var(--orbit-viewport-inline-gap, 1rem)),
+			46rem,
+			max(9.5rem, 34vw)
+		);
+		--menu-orbit-center-x: calc(100svw - var(--spin-dock-edge) - var(--spin-orbit-size) / 2);
+		/* 1.5 = +50% size; used for spin pane + right-edge compensation. */
+		--menu-dock-scale: 1.5;
+	}
+
+	body:has(#body-nav[data-menu-open="1"]) .header-logo-cluster {
+		box-sizing: border-box;
+		grid-column: 1 / -1;
+		margin: 0;
+		max-width: none;
+		min-height: 100svh;
+		min-height: 100dvh;
+		padding-block: env(safe-area-inset-top, 0px) env(safe-area-inset-bottom, 0px);
+		pointer-events: none;
 		position: fixed;
-		top: 3rem;
-		left: 0;
-		right: 0;
+		inset: 0;
+		/* No transform here — keeps fixed spin pane tied to the real viewport for centering. */
+		width: 100%;
+		z-index: 200;
+	}
 
-		.menu.active {
-			overflow-y: scroll;
+	body:has(#body-nav[data-menu-open="1"]) .header-logo-cluster .orbit-hub,
+	body:has(#body-nav[data-menu-open="1"]) .header-logo-cluster .orbit-submenu {
+		left: 50%;
+		max-height: var(--spin-dock-size);
+		max-width: var(--spin-dock-size);
+		width: var(--spin-dock-size);
+	}
 
-			&.list-in {
-				flex-direction: column;
-				width: unset;
-			}
-		}
+	body:has(#body-nav[data-menu-open="1"]) .header-logo-cluster .orbit-hub {
+		--orbit-r: max(
+			6.75rem,
+			calc(
+				0.5 * var(--spin-dock-size) - var(--orbit-viewport-inline-gap, 1rem) - clamp(2.125rem, 10vmin, 3.25rem)
+			)
+		);
+	}
 
-		.menu {
-			&.list-in {
-				.topic {
-					.menu-list {
-						columns: 1;
-					}
-				}
-			}
-		}
+	body:has(#body-nav[data-menu-open="1"]) .header-logo-cluster .orbit-submenu {
+		--orbit-r: max(
+			6.75rem,
+			calc(
+				0.5 * var(--spin-dock-size) - var(--orbit-viewport-inline-gap, 1rem) - clamp(2.125rem, 10vmin, 3.25rem)
+			)
+		);
+	}
 
-		.btn-close {
-			display: block;
-		}
+	/* Logo centered on the hub (same point as .orbit-hub); width tracks dock square. */
+	body:has(#body-nav[data-menu-open="1"]) .header-logo-cluster__spin-pane .body-header .logo {
+		margin: 0 auto;
+		width: min(calc(var(--spin-dock-size) * 0.88), 100%);
+	}
+
+	/*
+	 * Keep the dock on the original right-side anchor while scaling from center.
+	 */
+	body:has(#body-nav[data-menu-open="1"]) .header-logo-cluster__spin-pane {
+		aspect-ratio: 1;
+		box-sizing: border-box;
+		left: auto;
+		max-width: min(100svw, 100%);
+		pointer-events: auto;
+		position: fixed;
+		touch-action: none;
+		/*
+		 * Keep the orbit center at the historical right-docked position (based on --spin-orbit-size)
+		 * while allowing a larger pane footprint (--spin-dock-size) to extend left.
+		 */
+		right: calc(
+			var(--spin-dock-edge) + 0.5 * var(--menu-dock-scale) * var(--spin-orbit-size) -
+				0.5 * var(--spin-dock-size)
+		);
+		top: 50%;
+		transform: translateY(-50%) rotate(90deg) scale(var(--menu-dock-scale));
+		transform-origin: 50% 50%;
+		width: var(--spin-dock-size);
+		z-index: 201;
+	}
+
+	body:has(#body-nav[data-menu-open="1"]) .header-logo-cluster__spin-pane .body-header {
+		left: 50%;
+		margin: 0;
+		position: absolute;
+		text-align: center;
+		top: 50%;
+		transform: translate(-50%, -50%) rotate(-90deg);
+		transform-origin: center center;
+		width: 100%;
+		/* Below .orbit-hub (3) so logo + rays sit under ring buttons; titles stay at z-index 4. */
+		z-index: 2;
+	}
+
+	body:has(#body-nav[data-menu-open="1"]) .header-logo-cluster__spin-pane .orbit-section-title {
+		transform: translate(-50%, -50%) rotate(-90deg);
+	}
+
+	body:has(#body-nav[data-menu-open="1"]) .header-logo-cluster__spin-pane .orbit-section-title.orbit-section-title--enter {
+		animation: orbit-section-title-enter-right-dock 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+		transition: none;
+	}
+
+	body:has(#body-nav[data-menu-open="1"]) .header-logo-cluster .btn-orbit {
+		transform: translate(-50%, -50%) rotate(var(--orbit-a)) translateY(calc(-1 * var(--orbit-r))) rotate(calc(-1 * var(--orbit-a))) scale(var(--orbit-hover-scale)) rotate(-90deg);
+	}
+
+	body:has(#body-nav[data-menu-open="1"]) .header-logo-cluster .orbit-hub .btn-orbit {
+		transform: translate(-50%, -50%) rotate(var(--orbit-a)) translateY(calc(-1 * (var(--orbit-r) + var(--orbit-raise)))) rotate(calc(-1 * var(--orbit-a))) scale(var(--orbit-hover-scale)) rotate(-90deg);
+	}
+}
+
+@media (width <= 480px) and (prefers-reduced-motion: reduce) {
+	body:has(#body-nav[data-menu-open="1"]) .header-logo-cluster__spin-pane .orbit-section-title.orbit-section-title--enter {
+		animation: none;
+		opacity: 1;
+		transform: translate(-50%, -50%) rotate(-90deg);
 	}
 }

@@ -1,75 +1,274 @@
-.wpcf7-form {
-	label {
-		background-color: var(--secondary-color-light);
-		border-radius: var(--border-radius);
-		border: 1px solid var(--secondary-color);
-		color: var(--primary-color-dark);
-		display: block;
-		font-family: var(--slab-font), serif;
-		font-size: 1rem;
-		margin-bottom: 1rem;
-		margin-top: 1rem;
-		padding: 1rem;
-	}
+/* Contact Form 7 — scoped to main page content; uses theme tokens from base.css */
+/* Flat selectors only (no nesting): nested rules are ignored in browsers without CSS nesting support. */
 
-	.wpcf7-form-control-wrap {
-		display: block;
-		input,
-		textarea {
-			background-color: unset;
-			border: none;
-			box-sizing: border-box !important;
-			color: var(--primary-color-dark);
-			font-family: var(--font), sans-serif;
-			font-size: 1rem;
-			padding: 0.5rem;
-			width: 100% !important;
-			&:focus {
-				background-color: #ffffff;
-			}
-		}
-		input {
-			/*
-			Assumed contact form 7 has been modified.
-			modules/text.php -> remove size attribute
-			*/
-			box-sizing: border-box;
-			width: 100%;
-			border-bottom: 1px solid var(--primary-color-dark);
-		}
-	}
-
-	input[type="submit"] {
-		all: unset;
-		background-color: var(--primary-color-light);
-		border-radius: var(--border-radius);
-		color: #ffffff;
-		font-family: var(--slab-font), serif;
-		font-size: 1rem;
-		padding: 1rem;
-		text-transform: uppercase;
-		border: 1px solid var(--secondary-color);
-		&:hover {
-			color: var(--primary-color-dark);
-			background-color: unset;
-		}
-	}
+.body-page .entry-content .wpcf7 {
+	box-sizing: border-box;
+	margin-inline: auto;
+	max-width: 36rem;
+	text-transform: lowercase;
+	width: 100%;
 }
 
-.wpcf7 form {
-	.wpcf7-response-output {
-		border-radius: var(--border-radius);
-		margin-left: 0;
-		margin-right: 0;
-		padding: 1rem;
+/*
+ * Floating labels (JS adds .eluminate-float-label, .eluminate-float-label__text, .eluminate-float-primary).
+ *
+ * Primary control (first match): must match FLOAT_LABEL_PRIMARY_SELECTOR in assets/js/contact-float-labels.js
+ *   input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="hidden"]):not([type="file"]), textarea, select
+ * CSS cannot share that string with JS automatically — change both places, or only the JS constant and this comment.
+ */
+/* Optional hook: .eluminate-float-primary is the same control the script chose (for extra rules without repeating selectors) */
+.body-page .entry-content .wpcf7-form label.eluminate-float-label {
+	background: transparent;
+	border: none;
+	box-sizing: border-box;
+	display: block;
+	margin: 0;
+	padding: 0;
+	position: relative;
+}
+
+.body-page .entry-content .wpcf7-form label.eluminate-float-label .wpcf7-form-control-wrap {
+	display: block;
+	margin-top: 0;
+	padding: 0;
+	position: relative;
+}
+
+.body-page .entry-content .wpcf7-form label.eluminate-float-label .eluminate-float-label__text {
+	color: var(--font-color);
+	font-family: var(--font), sans-serif;
+	font-size: 1rem;
+	font-weight: 400;
+	left: 0.75rem;
+	line-height: 1.25;
+	max-width: calc(100% - 1.5rem);
+	overflow: hidden;
+	pointer-events: none;
+	position: absolute;
+	text-overflow: ellipsis;
+	/* Do not animate top/transform — causes stuck mid-float when .has-value toggles off */
+	transition:
+		color 0.2s ease,
+		font-size 0.2s ease;
+	white-space: nowrap;
+	z-index: 2;
+}
+
+.body-page .entry-content .wpcf7-form label.eluminate-float-label:not(.eluminate-float-label--textarea) .eluminate-float-label__text {
+	top: 50%;
+	transform: translateY(-50%);
+	transform-origin: left center;
+}
+
+.body-page .entry-content .wpcf7-form label.eluminate-float-label.eluminate-float-label--textarea .eluminate-float-label__text {
+	top: 1rem;
+	transform: translateY(0);
+	transform-origin: left top;
+}
+
+.body-page .entry-content .wpcf7-form label.eluminate-float-label.has-value .eluminate-float-label__text {
+	/* Light gray from tertiary + body gray (pure --tertiary-color fails contrast on white fields). */
+	color: color-mix(in srgb, var(--tertiary-color) 55%, var(--primary-color-dark) 45%);
+	font-size: 0.8125rem;
+	top: 0.45rem;
+	transform: translateY(0);
+}
+
+.body-page .entry-content .wpcf7-form label.eluminate-float-label.eluminate-float-label--textarea.has-value .eluminate-float-label__text {
+	top: 0.45rem;
+}
+
+.body-page .entry-content .wpcf7-form label.eluminate-float-label:not(.has-value):not(.eluminate-float-label--textarea) .eluminate-float-label__text {
+	top: 50%;
+	transform: translateY(-50%);
+}
+
+.body-page .entry-content .wpcf7-form label.eluminate-float-label.eluminate-float-label--textarea:not(.has-value) .eluminate-float-label__text {
+	top: 1rem;
+	transform: translateY(0);
+}
+
+/* Single-line fields: symmetric padding when empty */
+.body-page .entry-content .wpcf7-form label.eluminate-float-label:not(.eluminate-float-label--textarea) .wpcf7-form-control-wrap input,
+.body-page .entry-content .wpcf7-form label.eluminate-float-label:not(.eluminate-float-label--textarea) .wpcf7-form-control-wrap select {
+	min-block-size: 3.35rem;
+	padding: 1rem 0.75rem 1rem;
+}
+
+.body-page .entry-content .wpcf7-form label.eluminate-float-label:not(.eluminate-float-label--textarea).has-value .wpcf7-form-control-wrap input,
+.body-page .entry-content .wpcf7-form label.eluminate-float-label:not(.eluminate-float-label--textarea).has-value .wpcf7-form-control-wrap select {
+	padding: 1.7rem 0.75rem 0.45rem;
+}
+
+.body-page .entry-content .wpcf7-form label.eluminate-float-label .wpcf7-form-control-wrap textarea {
+	min-block-size: 8rem;
+	overflow-x: hidden;
+	overflow-y: auto;
+	padding: 1.9rem 0.75rem 0.55rem;
+	resize: none;
+}
+
+.body-page .entry-content .wpcf7-form label.eluminate-float-label .wpcf7-form-control-wrap input,
+.body-page .entry-content .wpcf7-form label.eluminate-float-label .wpcf7-form-control-wrap select,
+.body-page .entry-content .wpcf7-form label.eluminate-float-label .wpcf7-form-control-wrap textarea {
+	background-color: var(--tertiary-color);
+	border: none;
+	border-radius: var(--border-radius);
+	box-sizing: border-box;
+	color: var(--primary-color-dark);
+	font-family: var(--font), sans-serif;
+	font-size: 1rem;
+	line-height: 1.4;
+	transition:
+		background-color 0.15s ease,
+		padding 0.2s ease;
+	width: 100%;
+}
+
+.body-page .entry-content .wpcf7-form label.eluminate-float-label .wpcf7-form-control-wrap input:focus,
+.body-page .entry-content .wpcf7-form label.eluminate-float-label .wpcf7-form-control-wrap input:focus-visible,
+.body-page .entry-content .wpcf7-form label.eluminate-float-label .wpcf7-form-control-wrap select:focus,
+.body-page .entry-content .wpcf7-form label.eluminate-float-label .wpcf7-form-control-wrap select:focus-visible,
+.body-page .entry-content .wpcf7-form label.eluminate-float-label .wpcf7-form-control-wrap textarea:focus,
+.body-page .entry-content .wpcf7-form label.eluminate-float-label .wpcf7-form-control-wrap textarea:focus-visible {
+	background-color: #fff;
+	box-shadow: none;
+	outline: 2px solid var(--tertiary-color);
+	outline-offset: 0;
+}
+
+.body-page .entry-content .wpcf7-form label:not(.eluminate-float-label) .wpcf7-form-control-wrap {
+	display: block;
+	margin-top: 0.35rem;
+	padding: 0 1rem 0.75rem;
+}
+
+.body-page .entry-content .wpcf7-form label:not(.eluminate-float-label) .wpcf7-form-control-wrap input,
+.body-page .entry-content .wpcf7-form label:not(.eluminate-float-label) .wpcf7-form-control-wrap select,
+.body-page .entry-content .wpcf7-form label:not(.eluminate-float-label) .wpcf7-form-control-wrap textarea {
+	background-color: var(--tertiary-color);
+	border: none;
+	border-radius: var(--border-radius);
+	box-sizing: border-box;
+	color: var(--primary-color-dark);
+	font-family: var(--font), sans-serif;
+	font-size: 1rem;
+	line-height: 1.4;
+	padding: 0.5rem 0.25rem;
+	transition: background-color 0.15s ease;
+	width: 100%;
+}
+
+.body-page .entry-content .wpcf7-form label:not(.eluminate-float-label) .wpcf7-form-control-wrap input:focus,
+.body-page .entry-content .wpcf7-form label:not(.eluminate-float-label) .wpcf7-form-control-wrap input:focus-visible,
+.body-page .entry-content .wpcf7-form label:not(.eluminate-float-label) .wpcf7-form-control-wrap select:focus,
+.body-page .entry-content .wpcf7-form label:not(.eluminate-float-label) .wpcf7-form-control-wrap select:focus-visible,
+.body-page .entry-content .wpcf7-form label:not(.eluminate-float-label) .wpcf7-form-control-wrap textarea:focus,
+.body-page .entry-content .wpcf7-form label:not(.eluminate-float-label) .wpcf7-form-control-wrap textarea:focus-visible {
+	background-color: #fff;
+	box-shadow: none;
+	outline: 2px solid var(--tertiary-color);
+	outline-offset: 0;
+}
+
+.body-page .entry-content .wpcf7-form label:not(.eluminate-float-label) .wpcf7-form-control-wrap textarea {
+	min-block-size: 8rem;
+	overflow-x: hidden;
+	overflow-y: auto;
+	resize: none;
+}
+
+.body-page .entry-content .wpcf7-form input[type="submit"] {
+	appearance: none;
+	/* Same blue as .layout-footer background */
+	background-color: var(--primary-color-light);
+	border: none;
+	border-radius: var(--border-radius);
+	box-sizing: border-box;
+	color: #fff;
+	-webkit-text-fill-color: #fff;
+	cursor: pointer;
+	display: inline-block;
+	font-family: var(--font), sans-serif;
+	font-size: 1rem;
+	font-weight: 400;
+	margin-top: 0.25rem;
+	padding: 0.85rem 1.5rem;
+	text-align: center;
+	transform: scale(1);
+	transform-origin: center;
+	transition:
+		background-color 0.15s ease,
+		color 0.15s ease,
+		transform 0.15s ease;
+}
+
+.body-page .entry-content .wpcf7-form input[type="submit"]:hover:not(:disabled) {
+	background-color: var(--primary-color-light);
+	color: #fff;
+	-webkit-text-fill-color: #fff;
+	transform: scale(1.1);
+}
+
+.body-page .entry-content .wpcf7-form input[type="submit"]:focus,
+.body-page .entry-content .wpcf7-form input[type="submit"]:focus-visible,
+.body-page .entry-content .wpcf7-form input[type="submit"]:active {
+	box-shadow: none;
+	color: #fff;
+	-webkit-text-fill-color: #fff;
+	outline: none;
+}
+
+.body-page .entry-content .wpcf7-form input[type="submit"]:disabled,
+.body-page .entry-content .wpcf7-form.submitting input[type="submit"],
+.body-page .entry-content .wpcf7.submitting .wpcf7-form input[type="submit"] {
+	color: #fff;
+	-webkit-text-fill-color: #fff;
+	cursor: not-allowed;
+	opacity: 0.7;
+}
+
+/* Vertical rhythm between CF7 default <p> wrappers */
+.body-page .entry-content .wpcf7-form > p {
+	margin: 0 0 1rem;
+}
+
+.body-page .entry-content .wpcf7 form .wpcf7-response-output {
+	border-radius: var(--border-radius);
+	border-width: 0;
+	margin: 1rem 0 0;
+	padding: 1rem;
+}
+
+.body-page .entry-content .wpcf7 form.invalid .wpcf7-response-output {
+	background-color: var(--rays-gold);
+	color: var(--primary-color-dark);
+}
+
+.body-page .entry-content .wpcf7 form.sent .wpcf7-response-output {
+	background-color: #12ab3d;
+	color: #fff;
+}
+
+/* Inline validation (per-field) */
+.body-page .entry-content .wpcf7 form .wpcf7-not-valid-tip {
+	color: var(--primary-color-light);
+	font-family: var(--font), sans-serif;
+	font-size: 0.875rem;
+	margin-top: 0.35rem;
+}
+
+.body-page .entry-content .wpcf7 form .ajax-loader {
+	margin-inline-start: 0.75rem;
+	vertical-align: middle;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.body-page .entry-content .wpcf7-form input[type="submit"]:hover:not(:disabled) {
+		transform: scale(1);
 	}
 
-	&.invalid .wpcf7-response-output {
-		background-color: #ffb900;
-	}
-
-	&.sent .wpcf7-response-output {
-		color: white;
-		background-color: #12ab3d;
+	.body-page .entry-content .wpcf7-form label.eluminate-float-label .eluminate-float-label__text {
+		transition: none;
 	}
 }

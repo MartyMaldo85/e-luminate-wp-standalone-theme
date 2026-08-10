@@ -5,7 +5,6 @@ $close_icon  = $assets_base . 'close.svg';
 $menu_icon   = $assets_base . 'menu.svg';
 ?>
 <script>
-	window.eluminateLogoHintDismissEnabled = <?php echo ELUMINATE_LOGO_HINT_DISMISS_ENABLED ? 'true' : 'false'; ?>;
 	/** Orbit center: main (slab) / sub (sans); renderPageSubmenuOrbit swaps them after the first drill (depth ≥ 2). */
 	function setCenterSectionTitle(mainLabel, subLabel = '') {
 		const titleElm = document.getElementById('orbit-section-title');
@@ -1865,22 +1864,6 @@ $menu_icon   = $assets_base . 'menu.svg';
 		}, 520);
 	}
 
-	function dismissLogoMenuHint() {
-		if (!window.eluminateLogoHintDismissEnabled) {
-			return;
-		}
-		const el = document.getElementById('logo-menu-hint');
-		if (!el) {
-			return;
-		}
-		try {
-			localStorage.setItem('eluminate_logo_menu_hint_dismissed', '1');
-		} catch (e) {
-			/* Storage unavailable (private mode, etc.). */
-		}
-		el.remove();
-	}
-
 	function clearLogoMenuFlare(logo) {
 		if (!logo) {
 			return;
@@ -1913,8 +1896,21 @@ $menu_icon   = $assets_base . 'menu.svg';
 		}, 850);
 	}
 
+	function syncContentMenuTrigger(open) {
+		const trigger = document.getElementById('content-menu-trigger');
+		if (!trigger) {
+			return;
+		}
+		trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+		trigger.setAttribute(
+			'aria-label',
+			open
+				? <?php echo wp_json_encode( __( 'Close menu', 'eluminate-standalone' ) ); ?>
+				: <?php echo wp_json_encode( __( 'Open menu', 'eluminate-standalone' ) ); ?>
+		);
+	}
+
 	function toggleLogoMenu() {
-		dismissLogoMenuHint();
 		const nav = document.getElementById('body-nav');
 		const logo = document.querySelector('.body-header .logo');
 		if (!nav || !logo) {
@@ -2062,6 +2058,7 @@ $menu_icon   = $assets_base . 'menu.svg';
 			if (logoHidden) {
 				shell.classList.remove('nav-orbit-shell--enter');
 			}
+			syncContentMenuTrigger(open);
 			syncLogoGraphicForNavState();
 		};
 		syncShell();

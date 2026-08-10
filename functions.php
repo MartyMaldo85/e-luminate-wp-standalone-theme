@@ -21,13 +21,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Logo hint: hide on reload if dismissed; remove when logo is clicked. Override in wp-config.php if needed.
- */
-if ( ! defined( 'ELUMINATE_LOGO_HINT_DISMISS_ENABLED' ) ) {
-	define( 'ELUMINATE_LOGO_HINT_DISMISS_ENABLED', true );
-}
-
 /*
  * Block editor loads pages via the REST API; `content.rendered` runs `do_shortcode()`. Heavy shortcodes must
  * not run there or JSON responses can fail (editor shows "item doesn't exist"). This flag is set for the

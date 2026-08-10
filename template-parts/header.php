@@ -18,8 +18,8 @@ $by_topic_terms  = eluminate_standalone_get_by_topic_menu_terms();
 <div class="header-logo-cluster">
 	<div class="header-logo-cluster__spin-pane">
 		<h1 class="body-header">
-			<a class="logo" href="#" onclick="event.preventDefault(); event.stopPropagation(); if (typeof toggleLogoMenu === 'function') { toggleLogoMenu(); }">
-				<img alt="<?php echo esc_attr__( 'Open menu', 'eluminate-standalone' ); ?> — <?php echo esc_attr__( 'e-luminate', 'eluminate-standalone' ); ?>" src="<?php echo esc_url( $logo ); ?>" decoding="async" />
+			<a class="logo" href="<?php echo esc_url( home_url( '/' ) ); ?>">
+				<img alt="<?php echo esc_attr__( 'e-luminate', 'eluminate-standalone' ); ?>" src="<?php echo esc_url( $logo ); ?>" decoding="async" />
 			</a>
 		</h1>
 		<div class="orbit-section-title" id="orbit-section-title" data-title="">

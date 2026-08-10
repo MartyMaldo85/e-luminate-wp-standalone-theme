@@ -3,5 +3,5 @@
 .github/
 build/
 vendor/
-node_mdules/
+node_modules/
 deploy_config

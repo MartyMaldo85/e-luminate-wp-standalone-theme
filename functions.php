@@ -203,7 +203,23 @@ add_action(
 		add_theme_support( 'html5', array( 'style', 'script' ) );
 		add_theme_support( 'editor-styles' );
 		add_theme_support( 'content-width', 1024 );
+		add_editor_style( 'styles/editor.css' );
 		load_theme_textdomain( 'eluminate-standalone', implode( DIRECTORY_SEPARATOR, array( get_template_directory(), 'languages' ) ) );
+	}
+);
+
+/**
+ * Load theme webfonts in the block editor so editor.css faces resolve.
+ */
+add_action(
+	'enqueue_block_editor_assets',
+	static function (): void {
+		wp_enqueue_style(
+			'eluminate-editor-fonts',
+			'https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@100..900&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap',
+			array(),
+			null
+		);
 	}
 );
 
@@ -605,6 +621,22 @@ add_action(
 				'strategy'  => 'defer',
 			)
 		);
+
+		if ( is_singular( 'video_series' ) ) {
+			$series_js = trailingslashit( get_template_directory() ) . 'assets/js/series-episodes.js';
+			if ( is_readable( $series_js ) ) {
+				wp_enqueue_script(
+					'eluminate-series-episodes',
+					get_template_directory_uri() . '/assets/js/series-episodes.js',
+					array(),
+					(string) filemtime( $series_js ),
+					array(
+						'in_footer' => true,
+						'strategy'  => 'defer',
+					)
+				);
+			}
+		}
 	}
 );
 
@@ -1801,70 +1833,103 @@ if ( ! function_exists( 'eluminate_standalone_save_list_in_by_topic_field' ) ) {
 add_action( 'created_list_in', 'eluminate_standalone_save_list_in_by_topic_field' );
 add_action( 'edited_list_in', 'eluminate_standalone_save_list_in_by_topic_field' );
 
-if ( ! function_exists( 'eluminate_standalone_list_in_term_ids_mapped_by_pages' ) ) {
+if ( ! function_exists( 'eluminate_standalone_list_in_term_page_titles_map' ) ) {
 	/**
-	 * Returns list_in term IDs referenced by at least one page's "List in Section mapping".
+	 * Maps list_in term IDs to current page titles that list them (shortcodes and/or mapping meta).
 	 *
-	 * Result is cached for the request.
+	 * Titles are read live from pages so renames appear automatically. Cached per request.
 	 *
-	 * @return int[]
+	 * @return array<int, string[]> term_id => page titles (natural-case sorted).
 	 */
-	function eluminate_standalone_list_in_term_ids_mapped_by_pages(): array {
+	function eluminate_standalone_list_in_term_page_titles_map(): array {
 		static $cached = null;
 		if ( is_array( $cached ) ) {
 			return $cached;
 		}
 
-		global $wpdb;
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Admin terms table; single query per request.
-		$rows = $wpdb->get_col(
-			$wpdb->prepare(
-				"SELECT DISTINCT CAST(pm.meta_value AS UNSIGNED)
-				FROM {$wpdb->postmeta} pm
-				INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id AND p.post_type = %s
-					AND p.post_status NOT IN ('trash','auto-draft')
-				WHERE pm.meta_key = %s
-				AND pm.meta_value NOT IN ('','0')",
-				'page',
-				'_eluminate_list_in_term_id'
+		$cached = array();
+		$pages  = get_posts(
+			array(
+				'post_type'              => 'page',
+				'post_status'            => array( 'publish', 'draft', 'pending', 'private', 'future' ),
+				'posts_per_page'         => -1,
+				'orderby'                => array(
+					'menu_order' => 'ASC',
+					'title'      => 'ASC',
+				),
+				'no_found_rows'          => true,
+				'update_post_meta_cache' => true,
+				'update_post_term_cache' => false,
 			)
 		);
 
-		$ids = array();
-		foreach ( (array) $rows as $row ) {
-			$tid = (int) $row;
-			if ( $tid > 0 ) {
-				$ids[] = $tid;
+		foreach ( $pages as $page ) {
+			if ( ! $page instanceof WP_Post ) {
+				continue;
+			}
+			$term_ids = array();
+			if ( function_exists( 'eluminate_standalone_get_shows_videos_shortcode_term_ids' ) ) {
+				$term_ids = eluminate_standalone_get_shows_videos_shortcode_term_ids( (string) $page->post_content );
+			}
+			if ( empty( $term_ids ) && function_exists( 'eluminate_standalone_get_page_list_in_term_ids' ) ) {
+				$term_ids = eluminate_standalone_get_page_list_in_term_ids( (int) $page->ID );
+			}
+			if ( empty( $term_ids ) ) {
+				continue;
+			}
+
+			$title = get_the_title( $page );
+			if ( '' === $title ) {
+				$title = __( '(no title)', 'eluminate-standalone' );
+			}
+
+			foreach ( $term_ids as $term_id ) {
+				$tid = (int) $term_id;
+				if ( $tid <= 0 ) {
+					continue;
+				}
+				if ( ! isset( $cached[ $tid ] ) ) {
+					$cached[ $tid ] = array();
+				}
+				// Keep first occurrence order from page query; de-dupe by title string.
+				if ( ! in_array( $title, $cached[ $tid ], true ) ) {
+					$cached[ $tid ][] = $title;
+				}
 			}
 		}
-		$cached = array_values( array_unique( $ids ) );
+
+		foreach ( $cached as $tid => $titles ) {
+			natcasesort( $titles );
+			$cached[ $tid ] = array_values( $titles );
+		}
+
 		return $cached;
 	}
 }
 
 if ( ! function_exists( 'eluminate_standalone_list_in_build_listed_in_label' ) ) {
 	/**
-	 * Builds the admin "Listed In" cell text for list_in terms.
+	 * Builds the admin "Listed In" cell text for a list_in term.
 	 *
-	 * Order: Homepage (slug `featured`), By Topic, Shows — joined with " / ". Empty → Unlisted.
+	 * Includes "By Topic" when that checkbox is enabled, plus current page titles
+	 * that list the term, joined with " / ". Empty → Unlisted.
 	 *
-	 * @param string $slug     Term slug.
-	 * @param bool   $by_topic Whether "List in By Topic menu" is enabled.
-	 * @param bool   $mapped   Whether a page maps to this term.
+	 * @param int $term_id list_in term ID.
 	 *
 	 * @return string Unescaped label (escape when outputting HTML).
 	 */
-	function eluminate_standalone_list_in_build_listed_in_label( string $slug, bool $by_topic, bool $mapped ): string {
+	function eluminate_standalone_list_in_build_listed_in_label( int $term_id ): string {
 		$parts = array();
-		if ( 'featured' === $slug ) {
-			$parts[] = __( 'Homepage', 'eluminate-standalone' );
-		}
-		if ( $by_topic ) {
+		if ( (int) get_term_meta( $term_id, '_eluminate_by_topic_menu', true ) === 1 ) {
 			$parts[] = __( 'By Topic', 'eluminate-standalone' );
 		}
-		if ( $mapped ) {
-			$parts[] = __( 'Shows', 'eluminate-standalone' );
+
+		$map    = eluminate_standalone_list_in_term_page_titles_map();
+		$titles = $map[ $term_id ] ?? array();
+		foreach ( $titles as $title ) {
+			$parts[] = $title;
 		}
+
 		if ( empty( $parts ) ) {
 			return __( 'Unlisted', 'eluminate-standalone' );
 		}
@@ -1901,11 +1966,11 @@ if ( ! function_exists( 'eluminate_standalone_list_in_custom_column_by_topic_sub
 	/**
 	 * Returns Listed In labels for the list_in terms table (core uses apply_filters for this hook).
 	 *
-	 * Homepage: term slug is `featured`. By Topic / Shows as before; multiple segments joined with " / ".
+	 * "By Topic" when enabled, plus current titles of pages that list the term, joined with " / ".
 	 *
-	 * @param string $output      Default empty output.
-	 * @param string $column_name Column key.
-	 * @param int|string $term_id Term ID.
+	 * @param string     $output      Default empty output.
+	 * @param string     $column_name Column key.
+	 * @param int|string $term_id     Term ID.
 	 *
 	 * @return string
 	 */
@@ -1917,14 +1982,7 @@ if ( ! function_exists( 'eluminate_standalone_list_in_custom_column_by_topic_sub
 		if ( $tid <= 0 ) {
 			return $output;
 		}
-		$term = get_term( $tid, 'list_in' );
-		if ( ! $term instanceof WP_Term ) {
-			return $output;
-		}
-		$by_topic = (int) get_term_meta( $tid, '_eluminate_by_topic_menu', true ) === 1;
-		$mapped   = in_array( $tid, eluminate_standalone_list_in_term_ids_mapped_by_pages(), true );
-		$label    = eluminate_standalone_list_in_build_listed_in_label( (string) $term->slug, $by_topic, $mapped );
-		return esc_html( $label );
+		return esc_html( eluminate_standalone_list_in_build_listed_in_label( $tid ) );
 	}
 }
 add_filter( 'manage_list_in_custom_column', 'eluminate_standalone_list_in_custom_column_by_topic_submenu', 10, 3 );
@@ -1958,11 +2016,11 @@ add_filter( 'manage_edit-list_in_sortable_columns', 'eluminate_standalone_list_i
 
 if ( ! function_exists( 'eluminate_standalone_list_in_terms_clauses_order_listed_in' ) ) {
 	/**
-	 * Orders list_in admin table by Listed In labels (aligned with translated cell text).
+	 * Orders list_in admin table by Listed In page-title labels.
 	 *
-	 * @param array<string, string> $clauses Terms query clauses.
-	 * @param string[]               $taxonomies Taxonomies in the query.
-	 * @param array<string, mixed>  $args get_terms-style arguments.
+	 * @param array<string, string> $clauses    Terms query clauses.
+	 * @param string[]              $taxonomies Taxonomies in the query.
+	 * @param array<string, mixed>  $args       get_terms-style arguments.
 	 * @return array<string, string>
 	 */
 	function eluminate_standalone_list_in_terms_clauses_order_listed_in( array $clauses, array $taxonomies, array $args ): array {
@@ -1976,57 +2034,64 @@ if ( ! function_exists( 'eluminate_standalone_list_in_terms_clauses_order_listed
 			return $clauses;
 		}
 
-		global $wpdb;
+		// Avoid re-entering this filter while loading terms for sort labels.
+		static $sorting = false;
+		if ( $sorting ) {
+			return $clauses;
+		}
+		$sorting = true;
+		$terms   = get_terms(
+			array(
+				'taxonomy'   => 'list_in',
+				'hide_empty' => false,
+			)
+		);
+		$sorting = false;
 
-		if ( strpos( $clauses['join'], 'elbto.term_id' ) === false ) {
-			$clauses['join'] .= " LEFT JOIN {$wpdb->termmeta} AS elbto ON ( t.term_id = elbto.term_id AND elbto.meta_key = '_eluminate_by_topic_menu' )";
+		if ( is_wp_error( $terms ) || empty( $terms ) ) {
+			return $clauses;
 		}
 
-		if ( strpos( $clauses['join'], 'ellimap.map_tid' ) === false ) {
-			$key = esc_sql( '_eluminate_list_in_term_id' );
-			$clauses['join'] .= " LEFT JOIN (
-				SELECT DISTINCT CAST(pm.meta_value AS UNSIGNED) AS map_tid
-				FROM {$wpdb->postmeta} pm
-				INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id AND p.post_type = 'page'
-					AND p.post_status NOT IN ('trash','auto-draft')
-				WHERE pm.meta_key = '{$key}'
-				AND pm.meta_value NOT IN ('','0')
-			) AS ellimap ON ellimap.map_tid = t.term_id";
+		$labels = array();
+		foreach ( $terms as $term ) {
+			if ( ! $term instanceof WP_Term ) {
+				continue;
+			}
+			$labels[ (int) $term->term_id ] = eluminate_standalone_list_in_build_listed_in_label( (int) $term->term_id );
+		}
+		if ( empty( $labels ) ) {
+			return $clauses;
 		}
 
-		$sort_dummy_slug = '__non_featured__';
-		$l_hp_bt_sh       = eluminate_standalone_list_in_build_listed_in_label( 'featured', true, true );
-		$l_hp_bt          = eluminate_standalone_list_in_build_listed_in_label( 'featured', true, false );
-		$l_hp_sh          = eluminate_standalone_list_in_build_listed_in_label( 'featured', false, true );
-		$l_hp             = eluminate_standalone_list_in_build_listed_in_label( 'featured', false, false );
-		$l_bt_sh          = eluminate_standalone_list_in_build_listed_in_label( $sort_dummy_slug, true, true );
-		$l_bt             = eluminate_standalone_list_in_build_listed_in_label( $sort_dummy_slug, true, false );
-		$l_sh             = eluminate_standalone_list_in_build_listed_in_label( $sort_dummy_slug, false, true );
-		$l_un             = eluminate_standalone_list_in_build_listed_in_label( $sort_dummy_slug, false, false );
-
-		$label_fragment = sprintf(
-			"CASE
-WHEN t.slug = 'featured' AND COALESCE(elbto.meta_value, '') = '1' AND ellimap.map_tid IS NOT NULL THEN '%s'
-WHEN t.slug = 'featured' AND COALESCE(elbto.meta_value, '') = '1' THEN '%s'
-WHEN t.slug = 'featured' AND ellimap.map_tid IS NOT NULL THEN '%s'
-WHEN t.slug = 'featured' THEN '%s'
-WHEN COALESCE(elbto.meta_value, '') = '1' AND ellimap.map_tid IS NOT NULL THEN '%s'
-WHEN COALESCE(elbto.meta_value, '') = '1' THEN '%s'
-WHEN ellimap.map_tid IS NOT NULL THEN '%s'
-ELSE '%s' END",
-			esc_sql( $l_hp_bt_sh ),
-			esc_sql( $l_hp_bt ),
-			esc_sql( $l_hp_sh ),
-			esc_sql( $l_hp ),
-			esc_sql( $l_bt_sh ),
-			esc_sql( $l_bt ),
-			esc_sql( $l_sh ),
-			esc_sql( $l_un )
+		$unlisted = __( 'Unlisted', 'eluminate-standalone' );
+		uasort(
+			$labels,
+			static function ( string $a, string $b ) use ( $unlisted ): int {
+				$a_un = ( $a === $unlisted );
+				$b_un = ( $b === $unlisted );
+				if ( $a_un !== $b_un ) {
+					return $a_un ? 1 : -1;
+				}
+				return strcasecmp( $a, $b );
+			}
 		);
 
-		$dir = ( isset( $args['order'] ) && 'desc' === strtolower( (string) $args['order'] ) ) ? 'DESC' : 'ASC';
+		$ordered_ids = array_keys( $labels );
+		if ( isset( $args['order'] ) && 'desc' === strtolower( (string) $args['order'] ) ) {
+			$ordered_ids = array_reverse( $ordered_ids );
+		}
+		$ordered_ids = array_filter(
+			array_map( 'intval', $ordered_ids ),
+			static function ( int $id ): bool {
+				return $id > 0;
+			}
+		);
+		if ( empty( $ordered_ids ) ) {
+			return $clauses;
+		}
 
-		$clauses['orderby'] = "ORDER BY {$label_fragment} {$dir}, t.name ASC";
+		$field_list         = implode( ',', $ordered_ids );
+		$clauses['orderby'] = "ORDER BY FIELD(t.term_id, {$field_list}), t.name ASC";
 		$clauses['order']   = '';
 
 		return $clauses;
@@ -2144,7 +2209,7 @@ if ( ! function_exists( 'eluminate_standalone_is_shows_child_page' ) ) {
 
 if ( ! function_exists( 'eluminate_standalone_get_page_list_in_term_id' ) ) {
 	/**
-	 * Returns mapped list_in term id for a page.
+	 * Returns legacy single mapped list_in term id for a page.
 	 *
 	 * @param int $page_id Page ID.
 	 *
@@ -2156,37 +2221,355 @@ if ( ! function_exists( 'eluminate_standalone_get_page_list_in_term_id' ) ) {
 	}
 }
 
-if ( ! function_exists( 'eluminate_standalone_get_page_list_in_term' ) ) {
+if ( ! function_exists( 'eluminate_standalone_get_page_list_in_term_ids' ) ) {
 	/**
-	 * Resolve list_in term for a shows child page.
+	 * Returns mapped list_in term ids for a page (multi-term + legacy single meta).
 	 *
-	 * Priority:
-	 * 1) Explicit page-level mapping field.
-	 * 2) Fallback to page slug matching a list_in term slug.
+	 * @param int $page_id Page ID.
 	 *
-	 * @param WP_Post $page Page object.
-	 *
-	 * @return WP_Term|null
+	 * @return int[]
 	 */
-	function eluminate_standalone_get_page_list_in_term( WP_Post $page ): ?WP_Term {
-		$mapped_term_id = eluminate_standalone_get_page_list_in_term_id( (int) $page->ID );
-		if ( $mapped_term_id > 0 ) {
-			$mapped_term = get_term( $mapped_term_id, 'list_in' );
-			if ( $mapped_term instanceof WP_Term ) {
-				return $mapped_term;
+	function eluminate_standalone_get_page_list_in_term_ids( int $page_id ): array {
+		$ids = get_post_meta( $page_id, '_eluminate_list_in_term_ids', true );
+		if ( is_array( $ids ) ) {
+			$ids = array_values(
+				array_unique(
+					array_filter(
+						array_map( 'intval', $ids ),
+						static function ( int $term_id ): bool {
+							return $term_id > 0;
+						}
+					)
+				)
+			);
+			if ( ! empty( $ids ) ) {
+				return $ids;
 			}
 		}
 
-		$fallback_slug = sanitize_title( (string) $page->post_name );
-		if ( '' === $fallback_slug ) {
-			return null;
+		$legacy = eluminate_standalone_get_page_list_in_term_id( $page_id );
+		return $legacy > 0 ? array( $legacy ) : array();
+	}
+}
+
+if ( ! function_exists( 'eluminate_standalone_videos_shortcode_tag' ) ) {
+	/**
+	 * Canonical shortcode tag for a List in Section video grid.
+	 *
+	 * @return string
+	 */
+	function eluminate_standalone_videos_shortcode_tag(): string {
+		return 'eluminate-videos';
+	}
+}
+
+if ( ! function_exists( 'eluminate_standalone_shows_videos_shortcode_tag' ) ) {
+	/**
+	 * @deprecated Use {@see eluminate_standalone_videos_shortcode_tag()}.
+	 *
+	 * @return string
+	 */
+	function eluminate_standalone_shows_videos_shortcode_tag(): string {
+		return eluminate_standalone_videos_shortcode_tag();
+	}
+}
+
+if ( ! function_exists( 'eluminate_standalone_videos_shortcode_tags' ) ) {
+	/**
+	 * Shortcode tags recognized in content.
+	 *
+	 * @return string[]
+	 */
+	function eluminate_standalone_videos_shortcode_tags(): array {
+		return array( eluminate_standalone_videos_shortcode_tag() );
+	}
+}
+
+if ( ! function_exists( 'eluminate_standalone_resolve_list_in_term_from_atts' ) ) {
+	/**
+	 * Resolve a list_in term from shortcode attributes (requires tag_slug or term_id).
+	 *
+	 * @param array<string, mixed> $atts Shortcode attributes.
+	 *
+	 * @return WP_Term|null
+	 */
+	function eluminate_standalone_resolve_list_in_term_from_atts( array $atts ): ?WP_Term {
+		if ( ! empty( $atts['term_id'] ) ) {
+			$term = get_term( (int) $atts['term_id'], 'list_in' );
+			if ( $term instanceof WP_Term && 'list_in' === $term->taxonomy ) {
+				return $term;
+			}
 		}
-		$fallback_term = get_term_by( 'slug', $fallback_slug, 'list_in' );
-		if ( $fallback_term instanceof WP_Term ) {
-			return $fallback_term;
+
+		if ( ! empty( $atts['tag_slug'] ) ) {
+			$term = get_term_by( 'slug', sanitize_title( (string) $atts['tag_slug'] ), 'list_in' );
+			if ( $term instanceof WP_Term ) {
+				return $term;
+			}
 		}
 
 		return null;
+	}
+}
+
+if ( ! function_exists( 'eluminate_standalone_get_shows_videos_shortcode_term_ids' ) ) {
+	/**
+	 * Term ids referenced by explicit [eluminate-videos tag_slug="…"] shortcodes in content.
+	 *
+	 * @param string $content Post content.
+	 *
+	 * @return int[]
+	 */
+	function eluminate_standalone_get_shows_videos_shortcode_term_ids( string $content ): array {
+		$tags = eluminate_standalone_videos_shortcode_tags();
+		$has  = false;
+		foreach ( $tags as $tag ) {
+			if ( has_shortcode( $content, $tag ) ) {
+				$has = true;
+				break;
+			}
+		}
+		if ( ! $has ) {
+			return array();
+		}
+
+		$regex = get_shortcode_regex( $tags );
+		if ( ! preg_match_all( '/' . $regex . '/', $content, $matches, PREG_SET_ORDER ) ) {
+			return array();
+		}
+
+		$ids = array();
+		foreach ( $matches as $match ) {
+			$atts = shortcode_parse_atts( $match[3] ?? '' );
+			if ( ! is_array( $atts ) ) {
+				$atts = array();
+			}
+			$term = eluminate_standalone_resolve_list_in_term_from_atts( $atts );
+			if ( $term instanceof WP_Term ) {
+				$ids[] = (int) $term->term_id;
+			}
+		}
+
+		return array_values( array_unique( array_filter( $ids ) ) );
+	}
+}
+
+if ( ! function_exists( 'eluminate_standalone_page_has_shows_videos_shortcode' ) ) {
+	/**
+	 * Whether page content includes a videos shortcode.
+	 *
+	 * @param string $content Post content.
+	 *
+	 * @return bool
+	 */
+	function eluminate_standalone_page_has_shows_videos_shortcode( string $content ): bool {
+		foreach ( eluminate_standalone_videos_shortcode_tags() as $tag ) {
+			if ( has_shortcode( $content, $tag ) ) {
+				return true;
+			}
+		}
+		return false;
+	}
+}
+
+if ( ! function_exists( 'eluminate_standalone_shows_videos_shortcode_chunk_for_term' ) ) {
+	/**
+	 * Markup used when auto-inserting a term-specific videos shortcode.
+	 *
+	 * @param string  $content Existing content (classic vs block format hint).
+	 * @param WP_Term $term    list_in term.
+	 *
+	 * @return string
+	 */
+	function eluminate_standalone_shows_videos_shortcode_chunk_for_term( string $content, WP_Term $term ): string {
+		$tag       = eluminate_standalone_videos_shortcode_tag();
+		$shortcode = sprintf( '[%s tag_slug="%s"]', $tag, $term->slug );
+		if ( '' === trim( $content ) || ( function_exists( 'has_blocks' ) && has_blocks( $content ) ) ) {
+			return "<!-- wp:shortcode -->\n{$shortcode}\n<!-- /wp:shortcode -->";
+		}
+		return $shortcode;
+	}
+}
+
+if ( ! function_exists( 'eluminate_standalone_content_has_videos_shortcode_for_term' ) ) {
+	/**
+	 * Whether content already includes a videos shortcode for this term (slug or term_id).
+	 *
+	 * @param string  $content Post content.
+	 * @param WP_Term $term    list_in term.
+	 *
+	 * @return bool
+	 */
+	function eluminate_standalone_content_has_videos_shortcode_for_term( string $content, WP_Term $term ): bool {
+		if ( in_array( (int) $term->term_id, eluminate_standalone_get_shows_videos_shortcode_term_ids( $content ), true ) ) {
+			return true;
+		}
+
+		// Fallback: string match when shortcode_atts parsing misses block/JSON encodings.
+		$tag  = preg_quote( eluminate_standalone_videos_shortcode_tag(), '/' );
+		$slug = preg_quote( (string) $term->slug, '/' );
+		$id   = (int) $term->term_id;
+		$patterns = array(
+			'/\[' . $tag . '[^\]]*?\btag_slug=["\']' . $slug . '["\']/i',
+			'/\[' . $tag . '[^\]]*?\bterm_id=["\']?' . $id . '["\']?/i',
+			'/"tag_slug\\\\?":\\\\?"' . $slug . '\\\\?"/i',
+		);
+		foreach ( $patterns as $pattern ) {
+			if ( preg_match( $pattern, $content ) ) {
+				return true;
+			}
+		}
+		return false;
+	}
+}
+
+if ( ! function_exists( 'eluminate_standalone_count_videos_shortcodes_for_term' ) ) {
+	/**
+	 * Counts videos shortcodes targeting a term.
+	 *
+	 * @param string  $content Post content.
+	 * @param WP_Term $term    list_in term.
+	 *
+	 * @return int
+	 */
+	function eluminate_standalone_count_videos_shortcodes_for_term( string $content, WP_Term $term ): int {
+		$tag  = preg_quote( eluminate_standalone_videos_shortcode_tag(), '/' );
+		$slug = preg_quote( (string) $term->slug, '/' );
+		$id   = (int) $term->term_id;
+		$count = 0;
+		if ( preg_match_all( '/\[' . $tag . '[^\]]*?\btag_slug=["\']' . $slug . '["\']/i', $content, $m ) ) {
+			$count += count( $m[0] );
+		}
+		if ( preg_match_all( '/\[' . $tag . '[^\]]*?\bterm_id=["\']?' . $id . '["\']?/i', $content, $m ) ) {
+			$count += count( $m[0] );
+		}
+		return $count;
+	}
+}
+
+if ( ! function_exists( 'eluminate_standalone_dedupe_videos_shortcodes' ) ) {
+	/**
+	 * Ensures at most one videos shortcode per list_in term.
+	 *
+	 * @param string $content Post content.
+	 *
+	 * @return string
+	 */
+	function eluminate_standalone_dedupe_videos_shortcodes( string $content ): string {
+		$term_ids = eluminate_standalone_get_shows_videos_shortcode_term_ids( $content );
+		if ( empty( $term_ids ) ) {
+			return $content;
+		}
+
+		foreach ( $term_ids as $term_id ) {
+			$term = get_term( (int) $term_id, 'list_in' );
+			if ( ! ( $term instanceof WP_Term ) ) {
+				continue;
+			}
+			if ( eluminate_standalone_count_videos_shortcodes_for_term( $content, $term ) <= 1 ) {
+				continue;
+			}
+			// Collapse duplicates: drop all, then put a single shortcode back.
+			$content = eluminate_standalone_strip_shows_videos_shortcode_for_term( $content, $term );
+			$content = eluminate_standalone_append_shows_videos_shortcode_for_term( $content, $term );
+		}
+
+		return $content;
+	}
+}
+
+if ( ! function_exists( 'eluminate_standalone_append_shows_videos_shortcode_for_term' ) ) {
+	/**
+	 * Appends a term-specific videos shortcode if that term is not already present.
+	 *
+	 * @param string  $content Post content.
+	 * @param WP_Term $term    list_in term.
+	 *
+	 * @return string
+	 */
+	function eluminate_standalone_append_shows_videos_shortcode_for_term( string $content, WP_Term $term ): string {
+		if ( eluminate_standalone_content_has_videos_shortcode_for_term( $content, $term ) ) {
+			return $content;
+		}
+		$chunk = eluminate_standalone_shows_videos_shortcode_chunk_for_term( $content, $term );
+		if ( '' === trim( $content ) ) {
+			return $chunk;
+		}
+		return rtrim( $content ) . "\n\n" . $chunk;
+	}
+}
+
+if ( ! function_exists( 'eluminate_standalone_strip_shows_videos_shortcode_for_term' ) ) {
+	/**
+	 * Removes videos shortcodes that target a specific list_in term.
+	 *
+	 * @param string  $content Post content.
+	 * @param WP_Term $term    list_in term.
+	 *
+	 * @return string
+	 */
+	function eluminate_standalone_strip_shows_videos_shortcode_for_term( string $content, WP_Term $term ): string {
+		$slug = preg_quote( (string) $term->slug, '/' );
+		$id   = (int) $term->term_id;
+
+		foreach ( eluminate_standalone_videos_shortcode_tags() as $tag_name ) {
+			$tag      = preg_quote( $tag_name, '/' );
+			$patterns = array(
+				'/<!--\s*wp:shortcode\s*-->\s*\[' . $tag . '[^\]]*?\btag_slug=["\']' . $slug . '["\'][^\]]*\]\s*<!--\s*\/wp:shortcode\s*-->\s*/i',
+				'/<!--\s*wp:shortcode\s*-->\s*\[' . $tag . '[^\]]*?\bterm_id=["\']?' . $id . '["\']?[^\]]*\]\s*<!--\s*\/wp:shortcode\s*-->\s*/i',
+				'/\[' . $tag . '[^\]]*?\btag_slug=["\']' . $slug . '["\'][^\]]*\]\s*/i',
+				'/\[' . $tag . '[^\]]*?\bterm_id=["\']?' . $id . '["\']?[^\]]*\]\s*/i',
+			);
+			foreach ( $patterns as $pattern ) {
+				$content = (string) preg_replace( $pattern, '', $content );
+			}
+		}
+
+		return $content;
+	}
+}
+
+if ( ! function_exists( 'eluminate_standalone_strip_bare_shows_videos_shortcodes' ) ) {
+	/**
+	 * Removes bare videos shortcodes (no tag_slug / term_id attributes).
+	 *
+	 * @param string $content Post content.
+	 *
+	 * @return string
+	 */
+	function eluminate_standalone_strip_bare_shows_videos_shortcodes( string $content ): string {
+		foreach ( eluminate_standalone_videos_shortcode_tags() as $tag_name ) {
+			$tag     = preg_quote( $tag_name, '/' );
+			$content = (string) preg_replace(
+				'/<!--\s*wp:shortcode\s*-->\s*\[' . $tag . '\s*\]\s*<!--\s*\/wp:shortcode\s*-->\s*/i',
+				'',
+				$content
+			);
+			$content = (string) preg_replace( '/\[' . $tag . '\s*\]\s*/i', '', $content );
+		}
+		return $content;
+	}
+}
+
+if ( ! function_exists( 'eluminate_standalone_strip_all_shows_videos_shortcodes' ) ) {
+	/**
+	 * Removes every videos shortcode instance (with or without attrs).
+	 *
+	 * @param string $content Post content.
+	 *
+	 * @return string
+	 */
+	function eluminate_standalone_strip_all_shows_videos_shortcodes( string $content ): string {
+		foreach ( eluminate_standalone_videos_shortcode_tags() as $tag_name ) {
+			$tag     = preg_quote( $tag_name, '/' );
+			$content = (string) preg_replace(
+				'/<!--\s*wp:shortcode\s*-->\s*\[' . $tag . '[^\]]*\]\s*<!--\s*\/wp:shortcode\s*-->\s*/i',
+				'',
+				$content
+			);
+			$content = (string) preg_replace( '/\[' . $tag . '[^\]]*\]\s*/i', '', $content );
+		}
+		return $content;
 	}
 }
 
@@ -2211,7 +2594,7 @@ add_action( 'add_meta_boxes_page', 'eluminate_standalone_add_page_list_in_mappin
 
 if ( ! function_exists( 'eluminate_standalone_render_page_list_in_mapping_meta_box' ) ) {
 	/**
-	 * Renders the page-level list_in mapping select.
+	 * Renders multi-term list_in mapping checkboxes (each maps to its own shortcode).
 	 *
 	 * @param WP_Post $post Current page post.
 	 *
@@ -2219,96 +2602,329 @@ if ( ! function_exists( 'eluminate_standalone_render_page_list_in_mapping_meta_b
 	 */
 	function eluminate_standalone_render_page_list_in_mapping_meta_box( WP_Post $post ): void {
 		wp_nonce_field( 'eluminate_list_in_mapping_save', 'eluminate_list_in_mapping_nonce' );
-		$selected_term_id = eluminate_standalone_get_page_list_in_term_id( (int) $post->ID );
-		$terms            = get_terms(
+
+		$selected_ids = eluminate_standalone_get_shows_videos_shortcode_term_ids( (string) $post->post_content );
+		if ( empty( $selected_ids ) ) {
+			$selected_ids = eluminate_standalone_get_page_list_in_term_ids( (int) $post->ID );
+		}
+
+		$terms = get_terms(
 			array(
 				'taxonomy'   => 'list_in',
 				'hide_empty' => false,
 			)
 		);
 		?>
-		<p><?php echo esc_html__( 'Select which List in Section term should populate this page.', 'eluminate-standalone' ); ?></p>
-		<label class="screen-reader-text" for="eluminate-list-in-term-id"><?php echo esc_html__( 'List in Section term', 'eluminate-standalone' ); ?></label>
-		<select id="eluminate-list-in-term-id" name="eluminate_list_in_term_id" style="width:100%;">
-			<option value="0"><?php echo esc_html__( 'No mapping', 'eluminate-standalone' ); ?></option>
-			<?php
-			if ( ! is_wp_error( $terms ) && ! empty( $terms ) ) :
-				foreach ( $terms as $term ) :
-					if ( ! $term instanceof WP_Term ) {
-						continue;
-					}
-					?>
-					<option value="<?php echo esc_attr( (string) $term->term_id ); ?>" <?php selected( $selected_term_id, (int) $term->term_id ); ?>>
-						<?php echo esc_html( $term->name ); ?>
-					</option>
-					<?php
-				endforeach;
-			endif;
-			?>
-		</select>
+		<p><?php echo esc_html__( 'Choose one or more List in Section terms. Each checked term gets its own shortcode section you can move in the editor.', 'eluminate-standalone' ); ?></p>
 		<?php
-		if ( eluminate_standalone_is_shows_child_page( (int) $post->ID ) ) :
+		if ( is_wp_error( $terms ) || empty( $terms ) ) :
 			?>
-			<p><em><?php echo esc_html__( 'This page is in Main Page > Shows; mapped videos will replace page content on the frontend.', 'eluminate-standalone' ); ?></em></p>
+			<p><em><?php echo esc_html__( 'No List in Section terms found.', 'eluminate-standalone' ); ?></em></p>
 			<?php
-		else :
-			?>
-			<p><em><?php echo esc_html__( 'Mapping is used when the page is under Main Page > Shows.', 'eluminate-standalone' ); ?></em></p>
-			<?php
+			return;
 		endif;
+		?>
+		<ul style="margin:0.5em 0;padding-left:0;list-style:none;">
+			<?php
+			foreach ( $terms as $term ) :
+				if ( ! $term instanceof WP_Term ) {
+					continue;
+				}
+				$input_id = 'eluminate-list-in-term-' . (int) $term->term_id;
+				?>
+				<li style="margin:0 0 0.35em;">
+					<label for="<?php echo esc_attr( $input_id ); ?>">
+						<input
+							type="checkbox"
+							class="eluminate-list-in-term-checkbox"
+							id="<?php echo esc_attr( $input_id ); ?>"
+							name="eluminate_list_in_term_ids[]"
+							value="<?php echo esc_attr( (string) $term->term_id ); ?>"
+							data-term-slug="<?php echo esc_attr( $term->slug ); ?>"
+							<?php checked( in_array( (int) $term->term_id, $selected_ids, true ) ); ?>
+						/>
+						<?php echo esc_html( $term->name ); ?>
+						<code style="font-size:11px;">tag_slug="<?php echo esc_html( $term->slug ); ?>"</code>
+					</label>
+				</li>
+				<?php
+			endforeach;
+			?>
+		</ul>
+		<p>
+			<em>
+				<?php
+				echo esc_html__(
+					'Checking a term inserts [eluminate-videos tag_slug="…"] into the content immediately. Uncheck a term or delete its shortcode to remove that section. You can drag shortcodes to reorder.',
+					'eluminate-standalone'
+				);
+				?>
+			</em>
+		</p>
+		<?php
 	}
 }
 
+if ( ! function_exists( 'eluminate_standalone_enqueue_list_in_mapping_admin_script' ) ) {
+	/**
+	 * Editor script: toggle List in Section shortcodes when mapping checkboxes change.
+	 *
+	 * @param string $hook_suffix Current admin page.
+	 *
+	 * @return void
+	 */
+	function eluminate_standalone_enqueue_list_in_mapping_admin_script( string $hook_suffix ): void {
+		if ( ! in_array( $hook_suffix, array( 'post.php', 'post-new.php' ), true ) ) {
+			return;
+		}
+		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+		if ( ! $screen || 'page' !== $screen->post_type ) {
+			return;
+		}
+
+		$script_path = trailingslashit( get_template_directory() ) . 'assets/js/list-in-mapping.js';
+		if ( ! is_readable( $script_path ) ) {
+			return;
+		}
+
+		wp_enqueue_script(
+			'eluminate-list-in-mapping',
+			get_template_directory_uri() . '/assets/js/list-in-mapping.js',
+			array( 'wp-blocks', 'wp-data', 'wp-dom-ready' ),
+			(string) filemtime( $script_path ),
+			true
+		);
+	}
+}
+add_action( 'admin_enqueue_scripts', 'eluminate_standalone_enqueue_list_in_mapping_admin_script' );
+
+if ( ! function_exists( 'eluminate_standalone_sync_page_list_in_mapping_content' ) ) {
+	/**
+	 * Syncs multi-term List in Section checkboxes with per-term shortcodes on save.
+	 *
+	 * @param array<string, mixed> $data    Post data to be saved.
+	 * @param array<string, mixed> $postarr Raw post array.
+	 *
+	 * @return array<string, mixed>
+	 */
+	function eluminate_standalone_sync_page_list_in_mapping_content( array $data, array $postarr ): array {
+		if ( ( $data['post_type'] ?? '' ) !== 'page' ) {
+			return $data;
+		}
+
+		/*
+		 * wp_insert_post_data receives slashed fields. All shortcode parse/regex must run on
+		 * unslashed content, then be re-slashed before returning.
+		 */
+		$content = isset( $data['post_content'] ) ? wp_unslash( (string) $data['post_content'] ) : '';
+		if ( '' !== $content ) {
+			$content              = eluminate_standalone_dedupe_videos_shortcodes( $content );
+			$data['post_content'] = wp_slash( $content );
+		}
+
+		if ( ! isset( $_POST['eluminate_list_in_mapping_nonce'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
+			return $data;
+		}
+		$nonce = sanitize_text_field( wp_unslash( $_POST['eluminate_list_in_mapping_nonce'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		if ( ! wp_verify_nonce( $nonce, 'eluminate_list_in_mapping_save' ) ) {
+			return $data;
+		}
+		if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
+			return $data;
+		}
+
+		$post_id = isset( $postarr['ID'] ) ? (int) $postarr['ID'] : 0;
+		if ( $post_id > 0 && ! current_user_can( 'edit_post', $post_id ) ) {
+			return $data;
+		}
+		if ( $post_id <= 0 && ! current_user_can( 'edit_pages' ) ) {
+			return $data;
+		}
+
+		$posted_raw = isset( $_POST['eluminate_list_in_term_ids'] ) ? wp_unslash( $_POST['eluminate_list_in_term_ids'] ) : array(); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		if ( ! is_array( $posted_raw ) ) {
+			$posted_raw = array();
+		}
+		$posted_ids = array_values(
+			array_unique(
+				array_filter(
+					array_map( 'intval', $posted_raw ),
+					static function ( int $term_id ): bool {
+						return $term_id > 0;
+					}
+				)
+			)
+		);
+
+		$using_block_editor = false;
+		if ( $post_id > 0 && function_exists( 'use_block_editor_for_post' ) ) {
+			$using_block_editor = (bool) use_block_editor_for_post( $post_id );
+		} elseif ( function_exists( 'use_block_editor_for_post_type' ) ) {
+			$using_block_editor = (bool) use_block_editor_for_post_type( 'page' );
+		}
+
+		/*
+		 * Block editor: JS owns shortcode insert/remove. REST saves the canvas content; the follow-up
+		 * `meta-box-loader` request must not rewrite body (stale #content caused drops/dupes).
+		 */
+		if ( $using_block_editor || isset( $_POST['meta-box-loader'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
+			if ( isset( $_POST['meta-box-loader'] ) && $post_id > 0 ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
+				$existing = get_post( $post_id );
+				if ( $existing instanceof WP_Post ) {
+					$content              = eluminate_standalone_dedupe_videos_shortcodes( (string) $existing->post_content );
+					$data['post_content'] = wp_slash( $content );
+					$data['post_title']   = wp_slash( (string) $existing->post_title );
+					$data['post_excerpt'] = wp_slash( (string) $existing->post_excerpt );
+				}
+			} else {
+				$content = eluminate_standalone_dedupe_videos_shortcodes( wp_unslash( (string) ( $data['post_content'] ?? '' ) ) );
+				$data['post_content'] = wp_slash( $content );
+			}
+			$content_ids = eluminate_standalone_get_shows_videos_shortcode_term_ids(
+				wp_unslash( (string) ( $data['post_content'] ?? '' ) )
+			);
+			$GLOBALS['eluminate_standalone_list_in_term_ids_to_save'] = ! empty( $content_ids ) ? $content_ids : $posted_ids;
+			return $data;
+		}
+
+		$content = wp_unslash( (string) ( $data['post_content'] ?? '' ) );
+
+		// Classic editor: checkboxes are the mapping source of truth (JS also inserts/removes shortcodes).
+		$desired_terms = array();
+		foreach ( $posted_ids as $term_id ) {
+			$term = get_term( (int) $term_id, 'list_in' );
+			if ( $term instanceof WP_Term ) {
+				$desired_terms[ (int) $term->term_id ] = $term;
+			}
+		}
+		$desired_ids = array_keys( $desired_terms );
+
+		// Drop shortcodes for terms no longer desired.
+		$current_ids = eluminate_standalone_get_shows_videos_shortcode_term_ids( $content );
+		foreach ( $current_ids as $term_id ) {
+			if ( isset( $desired_terms[ $term_id ] ) ) {
+				continue;
+			}
+			$term = get_term( (int) $term_id, 'list_in' );
+			if ( $term instanceof WP_Term ) {
+				$content = eluminate_standalone_strip_shows_videos_shortcode_for_term( $content, $term );
+			}
+		}
+
+		// Remove unsupported bare shortcodes (must use term / term_id).
+		$content = eluminate_standalone_strip_bare_shows_videos_shortcodes( $content );
+
+		if ( empty( $desired_ids ) && eluminate_standalone_page_has_shows_videos_shortcode( $content ) ) {
+			$content = eluminate_standalone_strip_all_shows_videos_shortcodes( $content );
+		}
+
+		// Append missing per-term shortcodes after existing content.
+		foreach ( $desired_terms as $term ) {
+			$content = eluminate_standalone_append_shows_videos_shortcode_for_term( $content, $term );
+		}
+
+		$content = eluminate_standalone_dedupe_videos_shortcodes( $content );
+
+		$data['post_content'] = wp_slash( $content );
+		$GLOBALS['eluminate_standalone_list_in_term_ids_to_save'] = $desired_ids;
+
+		return $data;
+	}
+}
+add_filter( 'wp_insert_post_data', 'eluminate_standalone_sync_page_list_in_mapping_content', 10, 2 );
+
 if ( ! function_exists( 'eluminate_standalone_save_page_list_in_mapping_meta_box' ) ) {
 	/**
-	 * Persists page-level list_in mapping.
+	 * Persists multi-term list_in mapping meta.
+	 *
+	 * Prefers ids staged by classic-form sync; otherwise mirrors term shortcodes in content
+	 * (block editor / REST saves do not post the meta box fields).
 	 *
 	 * @param int $post_id Post ID.
 	 *
 	 * @return void
 	 */
 	function eluminate_standalone_save_page_list_in_mapping_meta_box( int $post_id ): void {
-		if ( ! isset( $_POST['eluminate_list_in_mapping_nonce'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
-			return;
-		}
-		$nonce = sanitize_text_field( wp_unslash( $_POST['eluminate_list_in_mapping_nonce'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
-		if ( ! wp_verify_nonce( $nonce, 'eluminate_list_in_mapping_save' ) ) {
-			return;
-		}
 		if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
 			return;
 		}
 		if ( ! current_user_can( 'edit_post', $post_id ) ) {
 			return;
 		}
+		if ( wp_is_post_revision( $post_id ) ) {
+			return;
+		}
 
-		$raw_term_id = isset( $_POST['eluminate_list_in_term_id'] ) ? wp_unslash( $_POST['eluminate_list_in_term_id'] ) : '0'; // phpcs:ignore WordPress.Security.NonceVerification.Missing
-		$term_id     = (int) $raw_term_id;
-		if ( $term_id <= 0 ) {
+		$ids = array();
+		if ( isset( $GLOBALS['eluminate_standalone_list_in_term_ids_to_save'] ) && is_array( $GLOBALS['eluminate_standalone_list_in_term_ids_to_save'] ) ) {
+			$ids = array_values(
+				array_unique(
+					array_filter(
+						array_map( 'intval', $GLOBALS['eluminate_standalone_list_in_term_ids_to_save'] ),
+						static function ( int $term_id ): bool {
+							return $term_id > 0;
+						}
+					)
+				)
+			);
+			unset( $GLOBALS['eluminate_standalone_list_in_term_ids_to_save'] );
+		} else {
+			$post = get_post( $post_id );
+			if ( $post instanceof WP_Post ) {
+				$ids = eluminate_standalone_get_shows_videos_shortcode_term_ids( (string) $post->post_content );
+			}
+		}
+
+		if ( empty( $ids ) ) {
+			delete_post_meta( $post_id, '_eluminate_list_in_term_ids' );
 			delete_post_meta( $post_id, '_eluminate_list_in_term_id' );
 			return;
 		}
 
-		$term = get_term( $term_id, 'list_in' );
-		if ( ! ( $term instanceof WP_Term ) ) {
-			delete_post_meta( $post_id, '_eluminate_list_in_term_id' );
-			return;
-		}
-
-		update_post_meta( $post_id, '_eluminate_list_in_term_id', (int) $term->term_id );
+		update_post_meta( $post_id, '_eluminate_list_in_term_ids', $ids );
+		// Keep legacy single meta aligned to the first mapped term for older readers.
+		update_post_meta( $post_id, '_eluminate_list_in_term_id', (int) $ids[0] );
 	}
 }
 add_action( 'save_post_page', 'eluminate_standalone_save_page_list_in_mapping_meta_box' );
+
+if ( ! function_exists( 'eluminate_standalone_shortcode_bool' ) ) {
+	/**
+	 * Parse a shortcode attribute as a boolean ("true"/"false", "1"/"0", etc.).
+	 *
+	 * @param mixed $value   Raw attribute value.
+	 * @param bool  $default Fallback when empty / unrecognized.
+	 *
+	 * @return bool
+	 */
+	function eluminate_standalone_shortcode_bool( $value, bool $default = false ): bool {
+		if ( is_bool( $value ) ) {
+			return $value;
+		}
+		if ( null === $value || '' === $value ) {
+			return $default;
+		}
+		$normalized = strtolower( trim( (string) $value ) );
+		if ( in_array( $normalized, array( '1', 'true', 'yes', 'on' ), true ) ) {
+			return true;
+		}
+		if ( in_array( $normalized, array( '0', 'false', 'no', 'off' ), true ) ) {
+			return false;
+		}
+		return $default;
+	}
+}
 
 if ( ! function_exists( 'eluminate_standalone_render_list_in_videos_for_term' ) ) {
 	/**
 	 * Renders video cards for a specific list_in term.
 	 *
-	 * @param WP_Term $term list_in term.
+	 * @param WP_Term              $term    list_in term.
+	 * @param array<string, mixed> $options Optional: limit, hide_others, hide_title.
 	 *
 	 * @return string
 	 */
-	function eluminate_standalone_render_list_in_videos_for_term( WP_Term $term ): string {
+	function eluminate_standalone_render_list_in_videos_for_term( WP_Term $term, array $options = array() ): string {
 		if ( 'list_in' !== $term->taxonomy ) {
 			return '';
 		}
@@ -2319,12 +2935,18 @@ if ( ! function_exists( 'eluminate_standalone_render_list_in_videos_for_term' ) 
 			}
 		}
 
-		$paged = max( 1, get_query_var( 'paged' ), get_query_var( 'page' ) );
+		$limit        = isset( $options['limit'] ) ? (int) $options['limit'] : 0;
+		$hide_others  = ! empty( $options['hide_others'] );
+		$hide_title   = ! empty( $options['hide_title'] );
+		$limited      = $limit > 0;
+		$per_page     = $limited ? $limit : 10;
+		$paged        = $limited ? 1 : max( 1, (int) get_query_var( 'paged' ), (int) get_query_var( 'page' ) );
+
 		$query = new WP_Query(
 			array(
 				'post_type'      => 'video_series',
 				'post_status'    => 'publish',
-				'posts_per_page' => 10,
+				'posts_per_page' => $per_page,
 				'paged'          => $paged,
 				'tax_query'      => array(
 					array(
@@ -2359,11 +2981,13 @@ if ( ! function_exists( 'eluminate_standalone_render_list_in_videos_for_term' ) 
 				'template-parts/video_series',
 				'poop',
 				array(
-					'video'     => $first_video_data,
-					'shortlink' => wp_get_shortlink( get_the_ID() ),
+					'video'      => $first_video_data,
+					'shortlink'  => wp_get_shortlink( get_the_ID() ),
+					'hide_title' => $hide_title,
 				)
 			);
-			if ( count( $video_data ) > 0 ) {
+			// hide_others: skip the "N videos in series" line (legacy episode-list equivalent).
+			if ( ! $hide_others && count( $video_data ) > 0 ) {
 				$n = count( $video_data );
 				echo '<p class="video-series-count">';
 				echo esc_html(
@@ -2377,14 +3001,16 @@ if ( ! function_exists( 'eluminate_standalone_render_list_in_videos_for_term' ) 
 			}
 			echo '</article>';
 		}
-		echo wp_kses_post(
-			get_the_posts_pagination(
-				array(
-					'total'   => $query->max_num_pages,
-					'current' => $paged,
+		if ( ! $limited ) {
+			echo wp_kses_post(
+				get_the_posts_pagination(
+					array(
+						'total'   => $query->max_num_pages,
+						'current' => $paged,
+					)
 				)
-			)
-		);
+			);
+		}
 		echo '</section>';
 		wp_reset_postdata();
 		if ( 0 === $rendered_videos ) {
@@ -2395,35 +3021,56 @@ if ( ! function_exists( 'eluminate_standalone_render_list_in_videos_for_term' ) 
 	}
 }
 
-add_filter(
-	'the_content',
-	function ( string $content ): string {
-		if ( is_admin() || ! is_singular( 'page' ) || ! in_the_loop() || ! is_main_query() ) {
-			return $content;
+/**
+ * Renders a List in Section video grid.
+ *
+ * Usage:
+ * - [eluminate-videos tag_slug="health"]
+ * - [eluminate-videos term_id="123"]
+ * - [eluminate-videos tag_slug="featured" limit="3" hide_others="true" hide_title="false"]
+ */
+add_shortcode(
+	'eluminate-videos',
+	static function ( $attr ): string {
+		/*
+		 * Building `content.rendered` for the block editor runs `do_shortcode()` via `the_content`.
+		 * Full markup + Niztech queries here can fatal or emit notices that break JSON responses.
+		 */
+		if ( eluminate_standalone_defer_heavy_shortcode_for_editor() ) {
+			return '<div class="eluminate-videos-placeholder" aria-hidden="true"></div>';
 		}
 
-		$post = get_post();
-		if ( ! ( $post instanceof WP_Post ) ) {
-			return $content;
-		}
+		$atts = shortcode_atts(
+			array(
+				'tag_slug'    => '',
+				'term_id'     => 0,
+				'limit'       => '',
+				'hide_others' => 'false',
+				'hide_title'  => 'false',
+			),
+			$attr,
+			eluminate_standalone_videos_shortcode_tag()
+		);
 
-		if ( ! eluminate_standalone_is_shows_child_page( (int) $post->ID ) ) {
-			return $content;
-		}
-
-		$resolved_term = eluminate_standalone_get_page_list_in_term( $post );
+		$resolved_term = eluminate_standalone_resolve_list_in_term_from_atts(
+			array(
+				'tag_slug' => (string) $atts['tag_slug'],
+				'term_id'  => (int) $atts['term_id'],
+			)
+		);
 		if ( ! ( $resolved_term instanceof WP_Term ) ) {
-			return $content;
+			return '';
 		}
 
-		$videos_markup = eluminate_standalone_render_list_in_videos_for_term( $resolved_term );
-		if ( '' === $videos_markup ) {
-			return $content;
-		}
-
-		return $videos_markup;
-	},
-	20
+		return eluminate_standalone_render_list_in_videos_for_term(
+			$resolved_term,
+			array(
+				'limit'       => ( '' === $atts['limit'] || null === $atts['limit'] ) ? 0 : (int) $atts['limit'],
+				'hide_others' => eluminate_standalone_shortcode_bool( $atts['hide_others'], false ),
+				'hide_title'  => eluminate_standalone_shortcode_bool( $atts['hide_title'], false ),
+			)
+		);
+	}
 );
 
 

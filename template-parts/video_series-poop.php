@@ -37,14 +37,18 @@ if ( ! empty( $args['video'] ) ) {
 			class="video-series-thumbnail"
 			src="%s"
 			alt="" />
-	</a>
-	<h3 class="title roboto-bold"><a href="%s" title="%s">%s</a></h3>',
+	</a>',
 		esc_url( $card_href ),
-		esc_url( $thumb_src ),
-		esc_url( $card_href ),
-		esc_attr( $video_title ),
-		esc_html( $video_title )
+		esc_url( $thumb_src )
 	);
+	if ( empty( $args['hide_title'] ) ) {
+		printf(
+			'<h3 class="title roboto-bold"><a href="%s" title="%s">%s</a></h3>',
+			esc_url( $card_href ),
+			esc_attr( $video_title ),
+			esc_html( $video_title )
+		);
+	}
 	if ( ! empty( $args['video']->description ) ) {
 		printf( '<p class="line-clamp-5">%s</p>', wp_kses_post( $args['video']->description ) );
 	}

@@ -134,6 +134,12 @@
 	}
 }
 
+/* Currently playing episode is shown in the hero iframe, not duplicated in the grid. */
+.shows-page-videos .video-series-entry.is-playing,
+.shows-page-videos .video-series-entry[hidden] {
+	display: none;
+}
+
 .video-entry .title {
 	color: #0070d4;
 	display: -webkit-box;

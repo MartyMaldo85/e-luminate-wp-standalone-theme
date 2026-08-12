@@ -76,7 +76,7 @@ body:has(#body-nav[data-selected]:not([data-selected=""])) .layout-body {
 	}
 }
 
-/* Top of .page-main: pulled up into the logo gap (same slot as the old click-logo hint). */
+/* Top of .page-main: pulled into the card’s top padding so the control sits near the white edge. */
 .content-menu-trigger-wrap {
 	align-items: center;
 	box-sizing: border-box;
@@ -194,13 +194,14 @@ body:has(#body-nav[data-selected]:not([data-selected=""])) .layout-body {
 		display: block;
 		isolation: isolate;
 		line-height: 0;
-		margin: -1rem auto -2rem;
+		/* Extra blue field above/below so the mark matches the reference breathing room. */
+		margin: 2.75rem auto 2rem;
 		overflow: visible;
 		position: relative;
 		transition: --rays-scale 350ms ease;
-		/* vw tracks the dynamic viewport on mobile scroll (URL bar); cluster height then changes and moves orbit titles anchored at top:50%. */
-		width: min(480px, 92vw);
-		width: min(480px, 92svw);
+		/* svw: stable small viewport — avoids jitter when dynamic vw changes during scroll. */
+		width: min(240px, 92vw);
+		width: min(240px, 92svw);
 	}
 
 	.logo {
@@ -224,16 +225,14 @@ body:has(#body-nav[data-selected]:not([data-selected=""])) .layout-body {
 	}
 
 	.logo img {
-		animation-name: scale-on-scroll;
-		animation-timeline: view();
-		/* Keep the end keyframe after timeline exit to prevent mobile "pop back" on continued scroll. */
-		animation-fill-mode: both;
+		/* Scroll scale is driven by layout-nav.js from scrollY (starts at the first scroll). */
+		animation: none;
 		display: block;
 		height: auto;
+		opacity: var(--eluminate-logo-scroll-opacity, 1);
 		position: relative;
+		transform: scale(var(--eluminate-logo-scroll-scale, 1));
 		transform-origin: center center;
-		/* Only fade the graphic; never transition transform (scroll keyframes use scale). */
-		transition: opacity 0.25s ease-in-out;
 		width: 100%;
 		z-index: 1;
 	}
@@ -258,7 +257,6 @@ body:has(#body-nav[data-selected]:not([data-selected=""])) .layout-body {
 @media (prefers-reduced-motion: reduce) {
 	.body-header .logo img {
 		animation: none !important;
-		animation-timeline: auto !important;
 		opacity: 1;
 		transform: none;
 	}
@@ -272,6 +270,20 @@ body:has(#body-nav[data-menu-open="1"]) .body-header .logo {
 body:has(#body-nav[data-menu-open="1"]) .body-header .logo:hover,
 body:has(#body-nav[data-menu-open="1"]) .body-header .logo:focus-visible {
 	transform: scale(1.21);
+}
+
+/* Menu open: step the logo width down on mid/narrow viewports. */
+@media (width <= 980px) {
+	body:has(#body-nav[data-menu-open="1"]) .body-header .logo {
+		transform: none;
+		width: min(220px, 92vw);
+		width: min(220px, 92svw);
+	}
+
+	body:has(#body-nav[data-menu-open="1"]) .body-header .logo:hover,
+	body:has(#body-nav[data-menu-open="1"]) .body-header .logo:focus-visible {
+		transform: scale(1.1);
+	}
 }
 
 /* Hide site logo graphic while navigating orbits; rays stay visible (see ::before z-index). Fade-in only from returnToMainMenu (layout-nav.js); closeFullNav resets without fade. */
@@ -344,18 +356,16 @@ body:has(#body-nav[data-hide-site-logo="1"]) .body-header .logo img.logo-reveal-
 }
 
 /*
- * Detach scroll-driven view() animation while the main menu is open. Do not set transform/opacity here — that would
- * jump the logo to scale(1) (larger than the in-progress keyframe). JS freezes current computed values.
+ * Detach scroll-driven logo scale while the main menu is open. Do not set transform/opacity here — that would
+ * jump the logo to scale(1) (larger than the in-progress scroll value). JS freezes current computed values.
  */
 body:has(#body-nav[data-menu-open="1"]):not(:has(#body-nav[data-hide-site-logo="1"])) .body-header .logo img {
 	animation: none !important;
-	animation-timeline: auto !important;
 }
 
-/* Orbit page submenu: graphic is usually hidden; stop view() scroll timeline so img transform/opacity is not recomputed every scroll (avoids jank next to centered titles). */
+/* Orbit page submenu: graphic is usually hidden; stop scroll scale updates fighting the hidden graphic. */
 body:has(#body-nav[data-selected="page-submenu"]) .body-header .logo img {
 	animation: none !important;
-	animation-timeline: auto !important;
 }
 
 /*
@@ -470,7 +480,7 @@ body:has(#body-nav[data-hide-site-logo="1"]) .body-header .logo::before {
 .body-page .main-title {
 	font-family: var(--slab-font), serif;
 	font-optical-sizing: auto;
-	font-size: 1.75rem;
+	font-size: var(--heading-h1-size);
 	font-style: normal;
 	font-weight: 500;
 	line-height: 1.2;
@@ -733,18 +743,25 @@ body:has(#body-nav[data-hide-site-logo="1"]) .body-header .logo::before {
 }
 
 @keyframes scale-on-scroll {
-	60% {
+	/* Reference curve for JS scrollY driver (layout-nav updateLogoScrollScale). */
+	0% {
+		opacity: 1;
 		transform: scale(1);
 	}
-	80% {
+
+	55% {
 		opacity: 1;
+		transform: scale(0.7);
 	}
-	85% {
-		opacity: 0.25;
+
+	75% {
+		opacity: 0.5;
+		transform: scale(0.55);
 	}
+
 	100% {
 		opacity: 0;
-		transform: scale(0.25);
+		transform: scale(0.4);
 	}
 }
 
@@ -811,15 +828,16 @@ body:has(#body-nav[data-hide-site-logo="1"]) .body-header .logo::before {
 		grid-template-columns: 1fr;
 	}
 
-	/* Full opacity throughout — view() scroll timeline no longer hits the desktop fade (0.25 / 0). */
+	/* Full opacity throughout — no desktop fade on narrow viewports. */
 	@keyframes scale-on-scroll {
-		60% {
+		0% {
 			opacity: 1;
 			transform: scale(0.75);
 		}
+
 		100% {
 			opacity: 1;
-			transform: scale(0.2);
+			transform: scale(0.45);
 		}
 	}
 }

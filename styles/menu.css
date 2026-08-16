@@ -465,15 +465,12 @@ body:has(#body-nav[data-selected]:not([data-selected=""])) .header-logo-cluster 
 }
 
 .header-logo-cluster .orbit-section-title__main {
-	display: -webkit-box;
-	line-height: 1;
+	display: block;
+	line-height: 1.15;
+	max-width: 100%;
 	overflow: hidden;
-	overflow-wrap: anywhere;
 	text-overflow: ellipsis;
-	white-space: normal;
-	line-clamp: 2;
-	-webkit-box-orient: vertical;
-	-webkit-line-clamp: 2;
+	white-space: nowrap;
 }
 
 /* In-flow stack when a subtitle exists: avoids top: calc(100% + …), which tracked vw-driven slab height and jumped on scroll. */
@@ -973,6 +970,15 @@ body:has(#body-nav[data-selected="page-submenu"]) .header-logo-cluster .orbit-su
 		--orbit-title-max-inline: calc(2 * var(--orbit-title-r) - var(--orbit-title-pill-size) - 3rem);
 	}
 
+	.header-logo-cluster .orbit-section-title__main {
+		display: -webkit-box;
+		overflow-wrap: anywhere;
+		white-space: normal;
+		line-clamp: 2;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 2;
+	}
+
 	/* Freeze orbit pills at their minimum mobile size. */
 	.header-logo-cluster .btn-orbit {
 		max-height: 5rem;
@@ -1138,10 +1144,15 @@ body:has(#body-nav[data-selected="page-submenu"]) .header-logo-cluster .orbit-su
 		);
 	}
 
-	/* Logo centered on the hub (same point as .orbit-hub); width tracks dock square. */
+	/* Logo centered on the hub; visual size 180px (÷ dock scale so on-screen matches). */
 	body:has(#body-nav[data-menu-open="1"]) .header-logo-cluster__spin-pane .body-header .logo {
 		margin: 0 auto;
-		width: min(calc(var(--spin-dock-size) * 0.88), 100%);
+		transform: none;
+		width: min(
+			calc(180px / var(--menu-dock-scale, 1)),
+			calc(92svw / var(--menu-dock-scale, 1)),
+			100%
+		);
 	}
 
 	/*

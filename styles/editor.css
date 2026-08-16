@@ -1,0 +1,63 @@
+/**
+ * Block editor canvas styles (loaded via add_editor_style).
+ * Keep lean — avoid layout/chrome rules that fight the admin UI.
+ */
+
+:root {
+	--primary-color: #015aaa;
+	--primary-color-light: #5f89c3;
+	--primary-color-dark: #3a4858;
+	--font-color: var(--primary-color-dark);
+	--font: "Roboto";
+	--slab-font: "Roboto Slab";
+	--heading-h1-size: 2em;
+}
+
+body {
+	color: var(--font-color);
+	font-family: var(--font), sans-serif;
+	font-optical-sizing: auto;
+	font-size: 18px;
+	font-style: normal;
+	font-weight: 400;
+	line-height: 1.6;
+}
+
+a {
+	color: var(--primary-color-light);
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+/* Match front-end .entry-content headings / .main-title face. */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.wp-block-heading {
+	font-family: var(--slab-font), serif;
+	font-optical-sizing: auto;
+	font-style: normal;
+	font-weight: 500;
+	line-height: 1.2;
+	margin-block-start: 1rem;
+	margin-block-end: 0;
+}
+
+h1,
+h1.wp-block-heading {
+	font-size: var(--heading-h1-size);
+}
+
+p {
+	margin: 0;
+}
+
+p:not(:last-child) {
+	margin-bottom: 1em;
+}

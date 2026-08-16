@@ -14,6 +14,8 @@
 	--border-radius: 1rem;
 	--font: "Roboto";
 	--slab-font: "Roboto Slab";
+	/* Shared with block-editor H1 (UA default at 18px root ≈ 2em). */
+	--heading-h1-size: 2em;
 }
 
 html {
@@ -135,6 +137,21 @@ p:not(:last-child) {
 /* Post / page body from the editor: roomier than the global reset (cards, chrome, etc.). */
 .entry-content {
 	line-height: 1.6;
+}
+
+/* Content headings match .main-title (Roboto Slab). Exclude card titles (.title). */
+.entry-content :is(h1, h2, h3, h4, h5, h6):not(.title),
+.entry-content .wp-block-heading {
+	font-family: var(--slab-font), serif;
+	font-optical-sizing: auto;
+	font-style: normal;
+	font-weight: 500;
+	line-height: 1.2;
+}
+
+.entry-content h1:not(.title),
+.entry-content h1.wp-block-heading {
+	font-size: var(--heading-h1-size);
 }
 
 .entry-content p:not(:last-child) {

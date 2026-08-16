@@ -1961,6 +1961,58 @@ $menu_icon   = $assets_base . 'menu.svg';
 	 * layout.css applies animation:none !important on the img once the menu is open, which wipes scroll-driven
 	 * transform in getComputedStyle if sampled too late.
 	 */
+	/**
+	 * Scale/fade the site logo from document scrollY (progress starts at the first scroll pixel).
+	 * Matches styles/layout.css @keyframes scale-on-scroll; view()/exit timelines wait until the mark leaves
+	 * the scrollport, which felt late.
+	 */
+	function updateLogoScrollScale() {
+		const img = document.querySelector('.body-header .logo img');
+		if (!img) {
+			return;
+		}
+		const nav = document.getElementById('body-nav');
+		const menuOpen = nav && nav.getAttribute('data-menu-open') === '1';
+		const hideGraphic = nav && nav.getAttribute('data-hide-site-logo') === '1';
+		if (menuOpen) {
+			return;
+		}
+		if (
+			typeof window.matchMedia === 'function' &&
+			window.matchMedia('(prefers-reduced-motion: reduce)').matches
+		) {
+			img.style.removeProperty('--eluminate-logo-scroll-scale');
+			img.style.removeProperty('--eluminate-logo-scroll-opacity');
+			return;
+		}
+		if (hideGraphic) {
+			return;
+		}
+
+		const rangePx = 400;
+		const y = window.scrollY || document.documentElement.scrollTop || 0;
+		const t = Math.min(1, Math.max(0, y / rangePx));
+
+		let scale;
+		let opacity;
+		if (t <= 0.55) {
+			const u = t / 0.55;
+			scale = 1 + (0.7 - 1) * u;
+			opacity = 1;
+		} else if (t <= 0.75) {
+			const u = (t - 0.55) / 0.2;
+			scale = 0.7 + (0.55 - 0.7) * u;
+			opacity = 1 + (0.5 - 1) * u;
+		} else {
+			const u = (t - 0.75) / 0.25;
+			scale = 0.55 + (0.4 - 0.55) * u;
+			opacity = 0.5 + (0 - 0.5) * u;
+		}
+
+		img.style.setProperty('--eluminate-logo-scroll-scale', String(scale));
+		img.style.setProperty('--eluminate-logo-scroll-opacity', String(opacity));
+	}
+
 	function syncLogoGraphicForNavState(prefreezeSnap) {
 		const nav = document.getElementById('body-nav');
 		const img = document.querySelector('.body-header .logo img');
@@ -2011,7 +2063,25 @@ $menu_icon   = $assets_base . 'menu.svg';
 		if (!hideGraphic) {
 			img.style.removeProperty('transform');
 		}
+		updateLogoScrollScale();
 	}
+
+	(function initLogoScrollScale() {
+		let ticking = false;
+		const onScrollOrResize = function () {
+			if (ticking) {
+				return;
+			}
+			ticking = true;
+			window.requestAnimationFrame(function () {
+				ticking = false;
+				updateLogoScrollScale();
+			});
+		};
+		window.addEventListener('scroll', onScrollOrResize, { passive: true });
+		window.addEventListener('resize', onScrollOrResize, { passive: true });
+		updateLogoScrollScale();
+	})();
 </script>
 
 <div class="body-nav" id="body-nav" data-selected="" data-menu-open="">

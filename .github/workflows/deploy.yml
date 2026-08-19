@@ -1,0 +1,52 @@
+name: Build & Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install PHP dependencies
+        uses: php-actions/composer@master
+        with:
+          args: --no-dev --optimize-autoloader --classmap-authoritative --quiet
+
+      - name: Build theme
+        run: |
+          chmod +x ./build.sh
+          ./build.sh
+
+      - name: Capture zip filename
+        id: zip
+        run: echo "filename=$(ls ./dist/*.zip | xargs basename)" >> "$GITHUB_OUTPUT"
+
+      - name: Write deploy config
+        run: |
+          cat > deploy_config <<EOF
+          ENVIRONMENT="${{ secrets.DEPLOY_ENVIRONMENT }}"
+          SSH_HOST="${{ secrets.SSH_HOST }}"
+          SSH_PORT=${{ secrets.SSH_PORT || 22 }}
+          SSH_REMOTE_THEME_PATH="${{ secrets.SSH_REMOTE_THEME_PATH }}"
+          SSH_USERNAME="${{ secrets.SSH_USERNAME }}"
+          THEME_NAME="eluminate-standalone"
+          DIST_DIR="./dist"
+          EOF
+
+      - name: Set up SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Deploy theme
+        run: |
+          chmod +x ./deploy.sh
+          echo "y" | ./deploy.sh "${{ steps.zip.outputs.filename }}"

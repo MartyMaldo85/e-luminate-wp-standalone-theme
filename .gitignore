@@ -1,6 +1,5 @@
 .cursor/
 .DS_Store
-.github/
 build/
 vendor/
 node_modules/

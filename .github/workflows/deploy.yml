@@ -14,9 +14,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install PHP dependencies
-        uses: php-actions/composer@master
-        with:
-          args: --no-dev --optimize-autoloader --classmap-authoritative --quiet
+        run: |
+          composer install --no-dev --optimize-autoloader --classmap-authoritative --quiet
+          sudo chown -R $(whoami) vendor/
 
       - name: Build theme
         run: |

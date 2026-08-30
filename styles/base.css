@@ -1,15 +1,21 @@
 :root {
+	/* Minimum space between viewport edges and the orbit ring box (.orbit-hub / .orbit-submenu width). */
+	--orbit-viewport-inline-gap: 1rem;
 	--primary-color: #015aaa;
 	--primary-color-light: #5f89c3;
 	--primary-color-dark: #3a4858;
 	--secondary-color-light: #ecf2ff;
-	--secondary-color: #aabbd3;
+	--secondary-color: #b7cae4;
 	--tertiary-color: #f4f4f4;
 	--accent-color: orange;
+	/* Saturated gold from assets/rays.svg radial stops (matches orbit rays). */
+	--rays-gold: #fddb07;
 	--font-color: var(--primary-color-dark);
 	--border-radius: 1rem;
 	--font: "Roboto";
 	--slab-font: "Roboto Slab";
+	/* Shared with block-editor H1 (UA default at 18px root ≈ 2em). */
+	--heading-h1-size: 2em;
 }
 
 html {
@@ -19,27 +25,89 @@ html {
 	font-style: normal;
 	font-variation-settings: "wdth" 100;
 	font-size: 18px;
+	height: 100%;
 	margin: 0;
 	padding: 0;
+	/* Root must be a scroll container for `scrollbar-gutter: stable` to apply (classic scrollbars). */
+	overflow-y: auto;
+	/* `stable` alone reserves gutter on the scrollbar side only (usually right in LTR), so the page looks shifted. */
+	scrollbar-gutter: stable;
+	scrollbar-gutter: stable both-edges;
+	background: var(--secondary-color);
+	position: relative;
+	/*
+	 * macOS Safari defaults to overlay scrollbars: no gutter is reserved and this property has no visible effect
+	 * (see MDN “Overlay scrollbars”). System Settings → Appearance → “Show scroll bars: Always” uses classic
+	 * scrollbars so symmetric gutters apply when combined with `overflow-y` above.
+	 */
+}
+
+html::before {
+	/* Fixed halo layer: decouples gradient sizing from document/page height on iOS Safari. */
+	background:
+		radial-gradient(
+			circle 60rem at 50% 8rem,
+			rgba(255, 255, 255, 1) 0%,
+			rgba(255, 255, 255, 0.95) 8%,
+			rgba(255, 255, 255, 0.72) 18%,
+			rgba(255, 255, 255, 0.32) 34%,
+			var(--secondary-color) 72%
+		),
+		var(--secondary-color);
+	content: "";
+	inset: 0;
+	pointer-events: none;
+	position: fixed;
+	z-index: 0;
 }
 
 body {
-	background-color: var(--secondary-color);
+	/* Page content paints above the fixed halo layer. */
+	background: transparent;
 	color: var(--font-color);
 	line-height: 1.3;
 	margin: 0;
+	min-height: 100vh;
 	padding: 0;
+	position: relative;
+	z-index: 1;
+}
+
+@media (width <= 900px) {
+	html::before {
+		/* ~25% tighter halo behind the header logo (stops × 0.75). */
+		background:
+			radial-gradient(
+				circle 60rem at 50% 8rem,
+				rgba(255, 255, 255, 1) 0%,
+				rgba(255, 255, 255, 0.95) 6%,
+				rgba(255, 255, 255, 0.72) 13.5%,
+				rgba(255, 255, 255, 0.32) 25.5%,
+				var(--secondary-color) 54%
+			),
+			var(--secondary-color);
+	}
+}
+
+@media (width <= 480px) {
+	html::before {
+		/* Further 25% tighter than the <=900px halo (stops × 0.75²). */
+		background:
+			radial-gradient(
+				circle 60rem at 50% 8rem,
+				rgba(255, 255, 255, 1) 0%,
+				rgba(255, 255, 255, 0.95) 4.5%,
+				rgba(255, 255, 255, 0.72) 10.125%,
+				rgba(255, 255, 255, 0.32) 19.125%,
+				var(--secondary-color) 40.5%
+			),
+			var(--secondary-color);
+	}
 }
 
 article,
 div,
 footer,
-h1,
-h2,
-h3,
-h4,
-h5,
-h6,
 header,
 li,
 nav,
@@ -51,7 +119,46 @@ ul {
 	padding: 0;
 }
 
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+	margin: 0;
+	margin-block-start: 1rem;
+	padding: 0;
+}
+
 p:not(:last-child) {
+	margin-bottom: 0.5rem;
+}
+
+/* Post / page body from the editor: roomier than the global reset (cards, chrome, etc.). */
+.entry-content {
+	line-height: 1.6;
+}
+
+/* Content headings match .main-title (Roboto Slab). Exclude card titles (.title). */
+.entry-content :is(h1, h2, h3, h4, h5, h6):not(.title),
+.entry-content .wp-block-heading {
+	font-family: var(--slab-font), serif;
+	font-optical-sizing: auto;
+	font-style: normal;
+	font-weight: 500;
+	line-height: 1.2;
+}
+
+.entry-content h1:not(.title),
+.entry-content h1.wp-block-heading {
+	font-size: var(--heading-h1-size);
+}
+
+.entry-content p:not(:last-child) {
+	margin-bottom: 1em;
+}
+
+.entry-content .video-series-entry p:not(:last-child) {
 	margin-bottom: 0.5rem;
 }
 

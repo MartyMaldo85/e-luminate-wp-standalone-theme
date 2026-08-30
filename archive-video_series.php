@@ -42,10 +42,12 @@ get_template_part( 'template-parts/header' );
 get_template_part( 'template-parts/layout', 'nav' );
 get_template_part( 'template-parts/main', 'start' );
 ?>
-	<h2 class="main-title"><?php echo __( 'Recent videos', 'eluminate-standalone' ); ?></h2>
+	<h2 class="main-title"><?php esc_html_e( 'Recent videos', 'eluminate-standalone' ); ?></h2>
 <?php
 
 if ( $recent_video_series->have_posts() ) :
+	echo '<div class="entry-content">';
+	echo '<section class="shows-page-videos">';
 	while ( $recent_video_series->have_posts() ) :
 		global $post;
 		$recent_video_series->the_post();
@@ -75,6 +77,8 @@ if ( $recent_video_series->have_posts() ) :
 			'current' => $paged,
 		)
 	);
+	echo '</section>';
+	echo '</div>';
 	wp_reset_postdata();
 else :
 	get_template_part( 'template-parts/404' );

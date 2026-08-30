@@ -24,7 +24,11 @@ if ( have_posts() ) :
 	while ( have_posts() ) :
 		global $post;
 		the_post();
-		the_content();
+		?>
+		<div class="entry-content">
+			<?php the_content(); ?>
+		</div>
+		<?php
 	endwhile;
 else :
 	get_template_part( 'template-parts/404' );

@@ -23,10 +23,11 @@ rsync -a \
   --exclude='build' \
   --exclude='build.sh' \
   --exclude='composer.*' \
+  --exclude='deploy_config' \
   --exclude='dist' \
   --exclude='node_modules' \
   --exclude='tests' \
-  ./ ./build/eluminate-standalone/
+  ./ build/eluminate-standalone/
 
 echo "4 of 5) Zipping";
 cd ./build || exit

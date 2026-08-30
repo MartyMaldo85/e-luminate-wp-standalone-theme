@@ -1,26 +1,186 @@
 .layout-body {
+	--layout-grid-gutter: 4rem;
+	--content-col-start: 2;
+	--content-col-end: 14;
+	background: transparent;
 	box-sizing: border-box;
 	display: grid;
-	gap-column: 20px;
+	column-gap: clamp(12px, 2vw, 20px);
 	grid-template-areas:
-		". logo logo ."
-		"nav nav nav nav"
-		"content content content content "
-		"footer footer footer footer ";
-	grid-template-columns: 200px 400px 400px 200px;
+		". . logo logo logo logo logo logo logo logo logo logo . ."
+		". nav nav nav nav nav nav nav nav nav nav nav nav ."
+		". content content content content content content content content content content content content ."
+		". footer footer footer footer footer footer footer footer footer footer footer footer .";
+	grid-template-columns:
+		var(--layout-grid-gutter)
+		repeat(12, minmax(0, 1fr))
+		var(--layout-grid-gutter);
 	grid-template-rows: min-content min-content auto min-content;
 	justify-content: center;
 	min-height: 100vh;
 	overflow-x: clip;
-	padding: 0 0.5rem 2rem 0.5rem;
+	padding-inline: 0;
+	padding-bottom: 0;
 	position: relative;
 	width: 100%;
 }
 
-.body-header {
+/* Fixed #backdrop lives inside .layout-body; overflow-x: clip can clip descendants and hide the overlay. */
+body:has(#body-nav[data-menu-open="1"]) .layout-body,
+body:has(#body-nav[data-selected]:not([data-selected=""])) .layout-body {
+	overflow-x: visible;
+}
+
+@media (width > 900px) {
+	.layout-body {
+		padding-inline: 1rem;
+		padding-bottom: 1rem;
+	}
+}
+
+@property --rays-scale {
+	syntax: "<number>";
+	inherits: true;
+	initial-value: 0.2;
+}
+
+@property --rays-pulse-scale {
+	syntax: "<number>";
+	inherits: true;
+	initial-value: 0.5;
+}
+
+:root {
+	--rays-viewport-factor: 1;
+}
+
+@media (width <= 480px) {
+	:root {
+		--rays-viewport-factor: 0.5;
+	}
+}
+
+.header-logo-cluster {
 	box-sizing: border-box;
 	grid-area: logo;
+	grid-column: 3 / 13;
 	justify-self: center;
+	max-width: 100%;
+	overflow: visible;
+	position: relative;
+	width: max-content;
+	z-index: 1;
+
+	&:has(.logo.is-expanded) {
+		z-index: 200; /* above .body-page and backdrop while menu is open */
+	}
+}
+
+/* Top of .page-main: pulled into the card’s top padding so the control sits near the white edge. */
+.content-menu-trigger-wrap {
+	align-items: center;
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
+	grid-column: 1 / -1;
+	justify-content: center;
+	margin-block: -3.35rem var(--title-content-gap);
+	margin-inline: -4rem;
+	max-width: none;
+	padding: 0;
+	position: relative;
+	text-align: center;
+	width: calc(100% + 8rem);
+	z-index: 3;
+}
+
+.content-menu-trigger {
+	align-items: center;
+	background: transparent;
+	border: none;
+	border-radius: 999px;
+	box-shadow: none;
+	color: var(--primary-color);
+	cursor: pointer;
+	display: grid;
+	font-family: var(--font), sans-serif;
+	font-size: 0.75rem;
+	font-weight: 600;
+	grid-template-rows: 1.75rem 0.8rem;
+	justify-items: center;
+	line-height: 1;
+	min-height: 3.25rem;
+	min-width: 4rem;
+	padding: 0.5rem 0.65rem;
+	row-gap: 0.25rem;
+	text-transform: lowercase;
+	transform: scale(1);
+	transform-origin: center;
+	transition: transform 0.25s ease;
+	width: 4rem;
+}
+
+.content-menu-trigger:hover,
+.content-menu-trigger:focus,
+.content-menu-trigger:focus-visible {
+	outline: none;
+	transform: scale(1.1);
+}
+
+.content-menu-trigger__icon {
+	display: block;
+	fill: var(--primary-color);
+	height: 1.75rem;
+	transform: scale(1.25);
+	transform-origin: center;
+	width: 1.75rem;
+}
+
+.content-menu-trigger__icon .orbit-dots {
+	transform-box: fill-box;
+	transform-origin: center;
+	transition: transform 0.4s ease;
+}
+
+.content-menu-trigger:hover .content-menu-trigger__icon .orbit-dots,
+.content-menu-trigger:focus .content-menu-trigger__icon .orbit-dots,
+.content-menu-trigger:focus-visible .content-menu-trigger__icon .orbit-dots {
+	transform: rotate(180deg);
+}
+
+.content-menu-trigger__label {
+	align-items: flex-end;
+	color: var(--primary-color);
+	display: flex;
+	height: 0.8rem;
+	justify-content: center;
+	line-height: 1;
+	text-align: center;
+	width: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.content-menu-trigger {
+		transition: none;
+	}
+
+	.content-menu-trigger__icon .orbit-dots {
+		transition: none;
+	}
+}
+
+@media (width <= 900px) {
+	.content-menu-trigger-wrap {
+		margin-block-start: -0.4rem;
+		margin-inline: -1rem;
+		width: calc(100% + 2rem);
+	}
+}
+
+.body-header {
+	box-sizing: border-box;
+	margin: 0;
+	z-index: 1;
 
 	a {
 		display: inline-block;
@@ -29,33 +189,339 @@
 	.logo {
 		animation-duration: 1ms;
 		animation-fill-mode: both;
-		animation-name: scale-on-scroll;
-		animation-timeline: view();
-		margin: -6rem auto 60rem;
-		width: 540px;
+		--rays-pulse-scale: 0.5;
+		--rays-scale: 0.2;
+		display: block;
+		isolation: isolate;
+		line-height: 0;
+		/* Extra blue field above/below so the mark matches the reference breathing room. */
+		margin: 2.75rem auto 2rem;
+		overflow: visible;
+		position: relative;
+		transition: --rays-scale 350ms ease;
+		/* svw: stable small viewport — avoids jitter when dynamic vw changes during scroll. */
+		width: min(240px, 92vw);
+		width: min(240px, 92svw);
+	}
+
+	.logo {
+		opacity: 1;
+		transform: translateY(0);
+		transform-origin: center center;
+		transition:
+			opacity 0.2s ease-in,
+			transform 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+			--rays-scale 350ms ease;
+	}
+
+	.logo:hover,
+	.logo:focus-visible {
+		transform: scale(1.1);
+	}
+
+	.logo.is-expanded {
+		--rays-pulse-scale: 1;
+		--rays-scale: 1;
+	}
+
+	.logo img {
+		/* Scroll scale is driven by layout-nav.js from scrollY (starts at the first scroll). */
+		animation: none;
+		display: block;
+		height: auto;
+		opacity: var(--eluminate-logo-scroll-opacity, 1);
+		position: relative;
+		transform: scale(var(--eluminate-logo-scroll-scale, 1));
+		transform-origin: center center;
+		width: 100%;
+		z-index: 1;
+	}
+
+	.logo::before {
+		animation: spin-pulse 30s linear infinite;
+		background: url(../assets/rays.svg) center / cover no-repeat;
+		content: '';
+		left: 50%;
+		top: 50%;
+		transform: translate(-50%, -50%) scale(calc(var(--rays-scale) * var(--rays-viewport-factor)));
+		transform-origin: center center;
+		width: clamp(120rem, 120vw, 220rem);
+		height: clamp(120rem, 120vw, 220rem);
+		opacity: 0.5;
+		pointer-events: none;
+		position: absolute;
+		z-index: -1;
 	}
 }
 
+@media (prefers-reduced-motion: reduce) {
+	.body-header .logo img {
+		animation: none !important;
+		opacity: 1;
+		transform: none;
+	}
+}
+
+/* Menu closed: logo at original height; menu open: 10% scale (hover adds another 10%). */
+body:has(#body-nav[data-menu-open="1"]) .body-header .logo {
+	transform: scale(1.1);
+}
+
+body:has(#body-nav[data-menu-open="1"]) .body-header .logo:hover,
+body:has(#body-nav[data-menu-open="1"]) .body-header .logo:focus-visible {
+	transform: scale(1.21);
+}
+
+/* Menu open: step the logo width down on mid/narrow viewports. */
+@media (width <= 980px) {
+	body:has(#body-nav[data-menu-open="1"]) .body-header .logo {
+		transform: none;
+		width: min(220px, 92vw);
+		width: min(220px, 92svw);
+	}
+
+	body:has(#body-nav[data-menu-open="1"]) .body-header .logo:hover,
+	body:has(#body-nav[data-menu-open="1"]) .body-header .logo:focus-visible {
+		transform: scale(1.1);
+	}
+}
+
+/* Hide site logo graphic while navigating orbits; rays stay visible (see ::before z-index). Fade-in only from returnToMainMenu (layout-nav.js); closeFullNav resets without fade. */
+body:has(#body-nav[data-hide-site-logo="1"]) .body-header .logo {
+	pointer-events: none;
+}
+
+body:has(#body-nav[data-hide-site-logo="1"]) .body-header .logo img {
+	animation: none;
+	pointer-events: none;
+}
+
+body:has(#body-nav[data-hide-site-logo="1"]) .body-header .logo img:not(.logo-graphic--fade-out) {
+	opacity: 0;
+}
+
+/* Entering submenu: fade out before .logo-graphic--fade-out is removed (layout-nav hideSiteLogo). */
+.body-header .logo img.logo-graphic--fade-out {
+	opacity: 0;
+	transition: opacity 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Match orbit-section-title-enter (fade + slide from ~10% above); top avoids overriding scroll-driven transform on img. */
+@keyframes logo-graphic-reveal-enter {
+	from {
+		opacity: 0;
+		top: -1.5rem;
+	}
+
+	to {
+		opacity: 1;
+		top: 0;
+	}
+}
+
+body:has(#body-nav[data-hide-site-logo="1"]) .body-header .logo img.logo-reveal-in {
+	animation: logo-graphic-reveal-enter 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+	opacity: 1;
+	pointer-events: auto;
+	transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	body:has(#body-nav[data-hide-site-logo="1"]) .body-header .logo img.logo-reveal-in {
+		animation: none;
+		opacity: 1;
+		top: 0;
+	}
+
+	.body-header .logo::before {
+		animation: spin 120s linear infinite;
+	}
+
+	.body-header .logo {
+		transition:
+			opacity 0.2s ease-in,
+			transform 0ms linear,
+			--rays-scale 350ms ease;
+	}
+
+	.body-header .logo:hover,
+	.body-header .logo:focus-visible {
+		transform: none;
+	}
+
+	body:has(#body-nav[data-menu-open="1"]) .body-header .logo:hover,
+	body:has(#body-nav[data-menu-open="1"]) .body-header .logo:focus-visible {
+		transform: scale(1.1);
+	}
+}
+
+/*
+ * Detach scroll-driven logo scale while the main menu is open. Do not set transform/opacity here — that would
+ * jump the logo to scale(1) (larger than the in-progress scroll value). JS freezes current computed values.
+ */
+body:has(#body-nav[data-menu-open="1"]):not(:has(#body-nav[data-hide-site-logo="1"])) .body-header .logo img {
+	animation: none !important;
+}
+
+/* Orbit page submenu: graphic is usually hidden; stop scroll scale updates fighting the hidden graphic. */
+body:has(#body-nav[data-selected="page-submenu"]) .body-header .logo img {
+	animation: none !important;
+}
+
+/*
+ * Menu open: stack rays above #backdrop (inside #body-nav, below .header-logo-cluster) but behind the logo img.
+ * `.logo { isolation: isolate }` + ::before z-index:-1 could sink rays beneath the backdrop; use a local 0/1 stack.
+ */
+body:has(#body-nav[data-menu-open="1"]) .body-header .logo {
+	isolation: auto;
+}
+
+body:has(#body-nav[data-menu-open="1"]) .body-header .logo::before {
+	z-index: 0;
+}
+
+/*
+ * Solar flare: toggled only via JS (.eluminate-menu-flare on open). Behind opaque logo img, z-index 0 was invisible.
+ * Above img (z-index 1) with mix-blend-mode: screen — glow reads on the mark; pointer-events none.
+ */
+@keyframes logo-menu-solar-flare {
+	0% {
+		opacity: 0;
+		transform: translate(-50%, -50%) scale(0.88);
+	}
+
+	24% {
+		opacity: 1;
+	}
+
+	100% {
+		opacity: 0;
+		transform: translate(-50%, -50%) scale(1.14);
+	}
+}
+
+.body-header .logo.eluminate-menu-flare::after {
+	animation: logo-menu-solar-flare 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+	background:
+		radial-gradient(ellipse 95% 88% at 44% 44%, rgba(255, 255, 255, 0.92) 0%, rgba(255, 226, 145, 0.58) 38%, transparent 68%),
+		conic-gradient(
+			from 198deg at 48% 46%,
+			transparent 0deg,
+			rgba(255, 255, 255, 0.7) 34deg,
+			transparent 70deg,
+			rgba(95, 137, 195, 0.42) 106deg,
+			transparent 162deg,
+			rgba(255, 205, 130, 0.38) 218deg,
+			transparent 292deg
+		);
+	border-radius: 50%;
+	box-shadow:
+		0 0 48px 20px rgba(255, 242, 210, 0.65),
+		0 0 100px 44px rgba(95, 137, 195, 0.28);
+	content: "";
+	height: clamp(26rem, 92vw, 50rem);
+	isolation: isolate;
+	left: 50%;
+	mix-blend-mode: screen;
+	pointer-events: none;
+	position: absolute;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	width: clamp(26rem, 92vw, 50rem);
+	z-index: 2;
+}
+
+/* Narrow viewports: drop the 26rem minimum so the halo fits inside ~320–480px widths (menu dock layout). */
+@media (width <= 480px) {
+	.body-header .logo.eluminate-menu-flare::after {
+		box-shadow:
+			0 0 26px 10px rgba(255, 242, 210, 0.5),
+			0 0 52px 22px rgba(95, 137, 195, 0.22);
+		height: min(78vw, 18rem);
+		width: min(78vw, 18rem);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.body-header .logo.eluminate-menu-flare::after {
+		animation: none !important;
+		content: none !important;
+	}
+}
+
+/* ::before is z-index:-1 behind img; lift rays above the hidden graphic. */
+body:has(#body-nav[data-hide-site-logo="1"]) .body-header .logo::before {
+	z-index: 2;
+}
+
 .body-page {
+	--body-page-pad-inline: 4rem;
+	--title-content-gap: 1rem;
 	background-color: #ffffff;
+	border-top-left-radius: var(--border-radius);
+	border-top-right-radius: var(--border-radius);
 	box-sizing: border-box;
 	display: grid;
 	gap: 1rem;
 	grid-area: content;
-	grid-template-columns: 1fr 10fr 1fr;
+	grid-column: var(--content-col-start) / var(--content-col-end);
+	grid-template-columns: repeat(12, minmax(0, 1fr));
 	grid-template-rows: auto;
-	padding: 0 0 2rem 0;
+	overflow: visible;
+	padding: 4rem;
+	position: relative;
+	z-index: 2;
+}
 
-	.page-main {
-		grid-column: 2 / 3;
-	}
+.body-page .page-main {
+	grid-column: 1 / -1;
+}
 
-	.main-title {
-		font-family: var(--slab-font), serif;
-		font-optical-sizing: auto;
-		font-style: normal;
-		font-weight: 500;
-	}
+.body-page .main-title {
+	font-family: var(--slab-font), serif;
+	font-optical-sizing: auto;
+	font-size: var(--heading-h1-size);
+	font-style: normal;
+	font-weight: 500;
+	line-height: 1.2;
+	margin-block-end: var(--title-content-gap);
+}
+
+/* Keep footer width locked to the same grid span as the content panel. */
+.layout-body > .layout-footer {
+	grid-column: var(--content-col-start) / var(--content-col-end);
+}
+
+/* Video listings (term archives, recent archive, shows child pages) share one wrapper
+   and one grid: .shows-page-videos. Outer .page-main is a single column (title + section). */
+.body-page .page-main:has(.video-series-entry) {
+	display: grid;
+	column-gap: 1rem;
+	row-gap: var(--title-content-gap);
+	grid-template-columns: minmax(0, 1fr);
+	grid-template-rows: auto;
+}
+
+.body-page .page-main:has(.video-series-entry) .main-title {
+	grid-column: 1 / -1;
+	margin-block-end: 0;
+	margin-block-start: 0;
+}
+
+.body-page .page-main:has(.shows-page-videos) > .entry-content {
+	display: flow-root;
+	grid-column: 1 / -1;
+	max-width: none;
+	min-width: 0;
+	width: 100%;
+}
+
+.body-page .page-main .shows-page-videos {
+	display: grid;
+	gap: 1rem;
+	grid-column: 1 / -1;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	width: 100%;
 }
 
 .not-found {
@@ -66,96 +532,332 @@
 	width: 100%;
 }
 
+/*
+ * #backdrop: flat selectors so nested-CSS engines still apply rules.
+ * Menu-open: tint must be a gradient *layer*, not background-color alone — otherwise it replaces the radial visually.
+ */
 #body-nav {
-	nav {
-		z-index: 100;
+	z-index: 10;
+}
+
+#body-nav #backdrop {
+	-webkit-backdrop-filter: blur(10px);
+	backdrop-filter: blur(10px);
+	background-color: transparent;
+	isolation: isolate;
+	/* Match page radial (`body` background uses circle at 50% 8rem). */
+	background-image: radial-gradient(
+		circle farthest-side at 50% 8rem,
+		rgba(255, 255, 255, 1) 0%,
+		rgba(255, 249, 232, 1) 6.375%,
+		rgba(95, 137, 195, 0.55) 65%,
+		rgba(21, 67, 137, 0.85) 100%
+	);
+	background-repeat: no-repeat;
+	background-size: cover;
+	box-sizing: border-box;
+	display: block;
+	inset: 0;
+	min-height: 100vh;
+	min-height: 100dvh;
+	opacity: 0;
+	pointer-events: none;
+	position: fixed;
+	transition: opacity 0.3s ease-in-out;
+	width: 100%;
+	z-index: 99;
+}
+
+/* Narrow-only: fade the bottom chrome highlight in from transparent. */
+@keyframes body-nav-backdrop-highlight-bottom-in {
+	from {
+		opacity: 0;
 	}
 
-	#backdrop {
-		background-color: rgba(58, 72, 88, 0);
-		display: none;
-		inset: 0;
-		position: fixed;
-		z-index: 99;
+	to {
+		opacity: 1;
+	}
+}
+
+#body-nav #backdrop::before {
+	/* Top band contrast for chrome controls: white → transparent in upper 25% of the viewport. */
+	animation: none;
+	background: linear-gradient(to bottom, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0) 100%);
+	content: '';
+	height: 25vh;
+	left: 0;
+	opacity: 1;
+	pointer-events: none;
+	position: absolute;
+	right: 0;
+	top: 0;
+}
+
+@media (width <= 480px) {
+	#body-nav #backdrop::before {
+		/* Home/close at bottom: strong tint at bottom, fade upward (position snaps; opacity animates). */
+		background: linear-gradient(to top, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0) 100%);
+		top: calc(100% - 25vh);
 	}
 
-	&[data-selected="about-us"],
-	&[data-selected="list-in"] {
-		#backdrop {
-			background-color: rgba(58, 72, 88, 0.6);
-			display: block;
-		}
+}
+
+@media (width <= 480px) and (prefers-reduced-motion: no-preference) {
+	#body-nav #backdrop::before {
+		animation: body-nav-backdrop-highlight-bottom-in 0.25s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	#body-nav #backdrop::before {
+		animation: none;
+		opacity: 1;
+	}
+}
+
+#body-nav[data-menu-open="1"] #backdrop,
+#body-nav[data-selected]:not([data-selected=""]) #backdrop {
+	/*
+	 * Dimming must not be a flat overlay — uniform rgba on top grayed out the white core.
+	 * Top layer: radial vignette (transparent at center → gray at edges), same anchor as base radial.
+	 */
+	overscroll-behavior: none;
+	touch-action: none;
+	background-color: transparent;
+	background-image:
+		radial-gradient(
+			circle farthest-side at 50% 8rem,
+			rgba(58, 72, 88, 0) 0%,
+			rgba(58, 72, 88, 0) 18%,
+			rgba(58, 72, 88, 0.22) 52%,
+			rgba(58, 72, 88, 0.45) 100%
+		),
+		radial-gradient(
+			circle farthest-side at 50% 8rem,
+			rgba(255, 255, 255, 1) 0%,
+			rgba(255, 249, 232, 1) 6.375%,
+			rgba(95, 137, 195, 0.55) 65%,
+			rgba(21, 67, 137, 0.85) 100%
+		);
+	background-repeat: no-repeat, no-repeat;
+	background-size: cover, cover;
+	opacity: 1;
+	pointer-events: auto;
+}
+
+/*
+ * Narrow + menu: radial cores track --menu-orbit-center-x from menu.css (orbit/logo center when docked right).
+ */
+@media (width <= 480px) {
+	#body-nav[data-menu-open="1"] #backdrop,
+	#body-nav[data-selected]:not([data-selected=""]) #backdrop {
+		background-image:
+			radial-gradient(
+				circle farthest-side at var(--menu-orbit-center-x, 50%) 50%,
+				rgba(58, 72, 88, 0) 0%,
+				rgba(58, 72, 88, 0) 18%,
+				rgba(58, 72, 88, 0.22) 52%,
+				rgba(58, 72, 88, 0.45) 100%
+			),
+			radial-gradient(
+				circle farthest-side at var(--menu-orbit-center-x, 50%) 50%,
+				rgba(255, 255, 255, 1) 0%,
+				rgba(255, 249, 232, 1) 6.375%,
+				rgba(95, 137, 195, 0.55) 65%,
+				rgba(21, 67, 137, 0.85) 100%
+			);
+	}
+}
+
+@keyframes spin {
+	from {
+		transform: translate(-50%, -50%) scale(calc(var(--rays-scale) * var(--rays-viewport-factor))) rotate(0deg);
+	}
+
+	to {
+		transform: translate(-50%, -50%) scale(calc(var(--rays-scale) * var(--rays-viewport-factor))) rotate(360deg);
+	}
+}
+
+/* One pulse (dip to --rays-pulse-scale × --rays-scale) per 45° of rotation; --rays-pulse-scale: 1 removes dip when menu is open. */
+@keyframes spin-pulse {
+	0% {
+		transform: translate(-50%, -50%) scale(calc(var(--rays-scale) * var(--rays-viewport-factor))) rotate(0deg);
+	}
+	6.25% {
+		transform: translate(-50%, -50%)
+			scale(calc(var(--rays-scale) * var(--rays-pulse-scale) * var(--rays-viewport-factor))) rotate(22.5deg);
+	}
+	12.5% {
+		transform: translate(-50%, -50%) scale(calc(var(--rays-scale) * var(--rays-viewport-factor))) rotate(45deg);
+	}
+	18.75% {
+		transform: translate(-50%, -50%)
+			scale(calc(var(--rays-scale) * var(--rays-pulse-scale) * var(--rays-viewport-factor))) rotate(67.5deg);
+	}
+	25% {
+		transform: translate(-50%, -50%) scale(calc(var(--rays-scale) * var(--rays-viewport-factor))) rotate(90deg);
+	}
+	31.25% {
+		transform: translate(-50%, -50%)
+			scale(calc(var(--rays-scale) * var(--rays-pulse-scale) * var(--rays-viewport-factor))) rotate(112.5deg);
+	}
+	37.5% {
+		transform: translate(-50%, -50%) scale(calc(var(--rays-scale) * var(--rays-viewport-factor))) rotate(135deg);
+	}
+	43.75% {
+		transform: translate(-50%, -50%)
+			scale(calc(var(--rays-scale) * var(--rays-pulse-scale) * var(--rays-viewport-factor))) rotate(157.5deg);
+	}
+	50% {
+		transform: translate(-50%, -50%) scale(calc(var(--rays-scale) * var(--rays-viewport-factor))) rotate(180deg);
+	}
+	56.25% {
+		transform: translate(-50%, -50%)
+			scale(calc(var(--rays-scale) * var(--rays-pulse-scale) * var(--rays-viewport-factor))) rotate(202.5deg);
+	}
+	62.5% {
+		transform: translate(-50%, -50%) scale(calc(var(--rays-scale) * var(--rays-viewport-factor))) rotate(225deg);
+	}
+	68.75% {
+		transform: translate(-50%, -50%)
+			scale(calc(var(--rays-scale) * var(--rays-pulse-scale) * var(--rays-viewport-factor))) rotate(247.5deg);
+	}
+	75% {
+		transform: translate(-50%, -50%) scale(calc(var(--rays-scale) * var(--rays-viewport-factor))) rotate(270deg);
+	}
+	81.25% {
+		transform: translate(-50%, -50%)
+			scale(calc(var(--rays-scale) * var(--rays-pulse-scale) * var(--rays-viewport-factor))) rotate(292.5deg);
+	}
+	87.5% {
+		transform: translate(-50%, -50%) scale(calc(var(--rays-scale) * var(--rays-viewport-factor))) rotate(315deg);
+	}
+	93.75% {
+		transform: translate(-50%, -50%)
+			scale(calc(var(--rays-scale) * var(--rays-pulse-scale) * var(--rays-viewport-factor))) rotate(337.5deg);
+	}
+	100% {
+		transform: translate(-50%, -50%) scale(calc(var(--rays-scale) * var(--rays-viewport-factor))) rotate(360deg);
 	}
 }
 
 @keyframes scale-on-scroll {
-	60% {
+	/* Reference curve for JS scrollY driver (layout-nav updateLogoScrollScale). */
+	0% {
+		opacity: 1;
 		transform: scale(1);
 	}
-	80% {
+
+	55% {
 		opacity: 1;
+		transform: scale(0.7);
 	}
-	85% {
-		opacity: 0.25;
+
+	75% {
+		opacity: 0.5;
+		transform: scale(0.55);
 	}
+
 	100% {
-		margin-bottom: -8rem;
 		opacity: 0;
-		transform: scale(0.25);
+		transform: scale(0.4);
 	}
 }
 
-@media (width <= 1400px) {
+@media (width >= 1700px) {
+	.body-page .page-main .shows-page-videos {
+		grid-template-columns: repeat(4, minmax(0, 1fr));
+	}
+}
+
+@media (width <= 980px) {
+	.body-page .page-main .shows-page-videos {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+@media (width <= 1200px) {
 	.layout-body {
-		grid-template-columns: 100px 300px 300px 100px;
+		--content-col-start: 1;
+		--content-col-end: -1;
+		grid-template-areas:
+			". logo logo logo logo logo logo ."
+			"nav nav nav nav nav nav nav nav"
+			"content content content content content content content content"
+			"footer footer footer footer footer footer footer footer";
+		grid-template-columns: repeat(8, minmax(0, 1fr));
+	}
+
+	.header-logo-cluster {
+		grid-column: 2 / 8;
+	}
+
+	.body-page {
+		grid-column: 1 / -1;
+		grid-template-columns: repeat(8, minmax(0, 1fr));
 	}
 }
 
 @media (width <= 900px) {
 	.body-page {
-		grid-template-columns: 1fr;
+		--body-page-pad-inline: 1rem;
+		grid-column: 1 / -1;
+		grid-template-columns: repeat(4, minmax(0, 1fr));
 		gap: 0;
 		padding: 1rem;
 	}
 
 	.layout-body {
-		grid-template-columns: 400px;
+		grid-template-columns: repeat(4, minmax(0, 1fr));
 		grid-template-rows: min-content min-content min-content min-content;
 		grid-template-areas:
-			"logo"
-			"nav"
-			"content"
-			"footer";
+			"logo logo logo logo"
+			"nav nav nav nav"
+			"content content content content"
+			"footer footer footer footer";
 
-		.page-main {
-			grid-column: 1 / 1;
-		}
-
-		.main-title {
-			grid-column: 1 / 1;
-		}
+		column-gap: 12px;
 	}
 
+	.header-logo-cluster {
+		grid-column: 1 / -1;
+	}
+
+	.body-page .page-main .shows-page-videos {
+		grid-template-columns: 1fr;
+	}
+
+	/* Full opacity throughout — no desktop fade on narrow viewports. */
 	@keyframes scale-on-scroll {
-		60% {
+		0% {
+			opacity: 1;
 			transform: scale(0.75);
 		}
-		80% {
-			opacity: 1;
-		}
-		85% {
-			opacity: 0.25;
-		}
+
 		100% {
-			margin-bottom: -10rem;
-			opacity: 0;
-			transform: scale(0.2);
+			opacity: 1;
+			transform: scale(0.45);
 		}
 	}
 }
 
 @media (width <= 375px) {
 	.layout-body {
-		grid-template-columns: 343px;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		grid-template-areas:
+			"logo logo"
+			"nav nav"
+			"content content"
+			"footer footer";
+		column-gap: 10px;
+	}
+
+	.body-page {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	.body-page .page-main .shows-page-videos {
+		grid-template-columns: 1fr;
 	}
 }

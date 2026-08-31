@@ -51,17 +51,43 @@
 
 	.logos {
 		color: white;
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 1rem;
 		grid-area: logos;
 		justify-self: self-end;
 
+		.logos__link {
+			color: inherit;
+			display: block;
+			line-height: 0;
+			text-decoration: none;
+			width: fit-content;
+			-webkit-tap-highlight-color: transparent;
+		}
+
+		.logos__link:hover,
+		.logos__link:focus,
+		.logos__link:focus-visible,
+		.logos__link:active,
+		.logos__link:visited {
+			background: transparent;
+			box-shadow: none;
+			outline: none;
+			text-decoration: none;
+		}
+
+		.logos__link svg {
+			display: block;
+		}
+
 		.sorop-novato {
 			width: 112px;
-			margin-right: 1rem;
 		}
 
 		.sorop-international {
 			width: 100px;
-			margin-right: 0.5rem;
 		}
 	}
 

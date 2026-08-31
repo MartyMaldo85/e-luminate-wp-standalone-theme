@@ -1,8 +1,8 @@
 <?php //phpcs:disable WordPress.Files.FileName.NotHyphenatedLowercase
 /**
- * Template Name: Video Series
+ * Template Name: Videos
  *
- * Template Post Type: video_series
+ * Template Post Type: videos
  *
  * @category   Theme
  * @package eluminate-standalone
@@ -47,9 +47,11 @@ else :
 endif;
 
 if ( class_exists( 'Niztech_Youtube_Client' ) ) {
-	$video_data = Niztech_Youtube_Client::video_content( $post->ID );
+	$video_data = function_exists( 'eluminate_standalone_video_content' )
+		? eluminate_standalone_video_content( $post->ID )
+		: Niztech_Youtube_Client::video_content( $post->ID );
 	if ( ! empty( $video_data ) ) {
-		$terms            = get_the_terms( $post->ID, 'list_in' );
+		$terms            = get_the_terms( $post->ID, 'tags' );
 		$series_permalink = get_permalink( $post );
 
 		$requested_vid = isset( $_GET['vid'] ) ? sanitize_text_field( wp_unslash( $_GET['vid'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
@@ -128,7 +130,12 @@ if ( class_exists( 'Niztech_Youtube_Client' ) ) {
 					continue;
 				}
 				$is_playing = ( $code === $active_code );
-				$thumb_url  = $video->thumbnail_maxres_url ?? $video->thumbnail_standard_url ?? $video->thumbnail_default_url ?? $path_generic;
+				$thumb_url  = function_exists( 'eluminate_standalone_get_video_thumbnail_url' )
+					? eluminate_standalone_get_video_thumbnail_url( $video )
+					: ( $video->thumbnail_maxres_url ?? $video->thumbnail_standard_url ?? $video->thumbnail_default_url ?? '' );
+				if ( '' === $thumb_url ) {
+					$thumb_url = $path_generic;
+				}
 				$episode_url = add_query_arg( 'vid', $code, $series_permalink );
 				$classes     = 'video-series-entry';
 				if ( $is_playing ) {
@@ -142,8 +149,8 @@ if ( class_exists( 'Niztech_Youtube_Client' ) ) {
 					$is_playing ? ' hidden' : ''
 				);
 				get_template_part(
-					'template-parts/video_series',
-					'poop',
+					'template-parts/videos',
+					'card',
 					array(
 						'video'     => $video,
 						'shortlink' => $series_permalink,

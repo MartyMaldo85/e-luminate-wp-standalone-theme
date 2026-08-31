@@ -148,66 +148,66 @@ msgstr "Encontrado en sección "
 
 #: functions.php:517
 msgctxt "Post Type General Name"
-msgid "Video Series"
-msgstr "Serie de Videos"
+msgid "Videos"
+msgstr "Videos"
 
 #: functions.php:518
 msgctxt "Post Type Singular Name"
-msgid "Video Series"
-msgstr "Serie de Videos"
+msgid "Video"
+msgstr "Video"
 
 #. Template Name of the theme
 #: functions.php:519 functions.php:520 functions.php:546
-msgid "Video Series"
-msgstr "Serie de Videos"
+msgid "Videos"
+msgstr "Videos"
 
 #: functions.php:521
-msgid "Video Series Archives"
-msgstr "Archivos de Serie de Videos"
+msgid "Video Archives"
+msgstr "Archivo de videos"
 
 #: functions.php:522
-msgid "Video Series Attributes"
-msgstr "Atributos de Serie de Videos"
+msgid "Video Attributes"
+msgstr "Atributos del video"
 
 #: functions.php:523
 msgid "Parent Item:"
 msgstr ""
 
 #: functions.php:524
-msgid "All Video Series"
-msgstr "Todas las Series de Videos"
+msgid "Imported Videos"
+msgstr "Videos importados"
 
 #: functions.php:525
-msgid "Add New Video Series"
-msgstr "Añadir nueva Serie de Video"
+msgid "Add Videos"
+msgstr "Agregar videos"
 
 #: functions.php:526
-msgid "Add New"
-msgstr "Añadir nuevo"
+msgid "Add Videos"
+msgstr "Agregar videos"
 
 #: functions.php:527
-msgid "New Video Series"
-msgstr "Nueva Serie de Video"
+msgid "New Video"
+msgstr "Nuevo video"
 
 #: functions.php:528
-msgid "Edit Video Series"
-msgstr "Editar Serie de Videos"
+msgid "Edit Video"
+msgstr "Editar video"
 
 #: functions.php:529
-msgid "Update Video Series"
-msgstr "Actualizar Serie de Video"
+msgid "Update Video"
+msgstr "Actualizar video"
 
 #: functions.php:530
-msgid "View Video Series"
-msgstr "Ver Serie de Video"
+msgid "View Video"
+msgstr "Ver video"
 
 #: functions.php:531
 msgid "View Items"
 msgstr ""
 
 #: functions.php:532
-msgid "Search Video Series"
-msgstr ""
+msgid "Search Videos"
+msgstr "Buscar videos"
 
 #: functions.php:533
 msgid "Not found"
@@ -242,19 +242,19 @@ msgid "Uploaded to this item"
 msgstr ""
 
 #: functions.php:541
-msgid "Video Series list"
-msgstr ""
+msgid "Videos list"
+msgstr "Lista de videos"
 
 #: functions.php:542
 msgid "Items list navigation"
 msgstr ""
 
 #: functions.php:543
-msgid "Filter Video Series list"
-msgstr ""
+msgid "Filter videos list"
+msgstr "Filtrar lista de videos"
 
 #: functions.php:547
-msgid "Posts that show a series of videos"
+msgid "Posts that show a playlist of videos"
 msgstr ""
 
 #. Template Name of the theme
@@ -266,7 +266,7 @@ msgid "Video Series Template Full Width"
 msgstr ""
 
 #: taxonomy-list_in-popular.php:53 taxonomy-list_in.php:48
-#: template-parts/video_series-poop.php:42
+#: template-parts/video_series-card.php:42
 #, php-format
 msgid "%s video in series"
 msgid_plural "%s videos in series"

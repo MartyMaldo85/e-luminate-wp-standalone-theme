@@ -1,8 +1,8 @@
 <?php //phpcs:disable WordPress.Files.FileName.NotHyphenatedLowercase
 /**
- * Template Name: Taxonomy List In Popular
+ * Template Name: Tags Archive
  *
- * Template Post Type: video_series
+ * Template Post Type: videos
  *
  * @category   Theme
  * @package eluminate-standalone
@@ -17,20 +17,17 @@ if ( class_exists( 'Niztech_Youtube' ) ) {
 	include_once $path_to_plugins;
 }
 
+$paged = max( 1, get_query_var( 'paged' ) );
+$page  = max( 1, get_query_var( 'page' ) );
 
-$path_generic = implode(
-	DIRECTORY_SEPARATOR,
-	array( get_template_directory_uri(), 'assets', 'generic-16-9.svg' )
-);
-
-get_template_part( 'template-parts/layout', 'start' );
+get_template_part( 'template-parts/layout', 'start', array( 'class' => array( 'tags' ) ) );
 get_template_part( 'template-parts/header' );
 get_template_part( 'template-parts/layout', 'nav' );
 get_template_part( 'template-parts/main', 'start' );
 ?>
-	<h2 class="main-title"><?php echo single_term_title( '', false ); ?></h2>
+	<h2 class="main-title"><?php single_term_title( '' ); ?></h2>
 <?php
-
+global $wp_query;
 
 if ( have_posts() ) :
 	echo '<div class="entry-content">';
@@ -40,26 +37,40 @@ if ( have_posts() ) :
 		the_post();
 
 		if ( class_exists( 'Niztech_Youtube_Client' ) ) {
-			$video_data = Niztech_Youtube_Client::video_content( $post->ID );
+			$video_data = function_exists( 'eluminate_standalone_video_content' )
+				? eluminate_standalone_video_content( $post->ID )
+				: Niztech_Youtube_Client::video_content( $post->ID );
 			if ( ! empty( $video_data ) ) {
 				$number_videos    = count( $video_data );
 				$first_video_data = $video_data[0];
+				$thumb_url        = function_exists( 'eluminate_standalone_get_video_thumbnail_url' )
+					? eluminate_standalone_get_video_thumbnail_url( $first_video_data )
+					: '';
 				echo '<article class="video-series-entry">';
 				get_template_part(
-					'template-parts/video_series',
-					'poop',
+					'template-parts/videos',
+					'card',
 					array(
 						'video'     => $first_video_data,
 						'shortlink' => wp_get_shortlink( $post->ID ),
+						'thumb_url' => $thumb_url,
 					)
 				);
-			echo '<p class="video-series-count">';
-			printf( _n( '%s video in series', '%s videos in series', $number_videos, 'eluminate-standalone' ), $number_videos );
-			echo '</p>';
+			if ( ! empty( $number_videos ) ) {
+				echo '<p class="video-series-count">';
+				printf( _n( '%s video in series', '%s videos in series', $number_videos, 'eluminate-standalone' ), $number_videos );
+				echo '</p>';
+			}
 				echo '</article>';
 			}
 		}
 	endwhile;
+	echo get_the_posts_pagination(
+		array(
+			'total'   => $wp_query->max_num_pages,
+			'current' => $paged,
+		)
+	);
 	echo '</section>';
 	echo '</div>';
 else :

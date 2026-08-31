@@ -145,27 +145,27 @@ msgstr ""
 
 #: functions.php:517
 msgctxt "Post Type General Name"
-msgid "Video Series"
+msgid "Videos"
 msgstr ""
 
 #: functions.php:518
 msgctxt "Post Type Singular Name"
-msgid "Video Series"
+msgid "Video"
 msgstr ""
 
 #. Template Name of the theme
 #: functions.php:519
 #: functions.php:520
 #: functions.php:546
-msgid "Video Series"
+msgid "Videos"
 msgstr ""
 
 #: functions.php:521
-msgid "Video Series Archives"
+msgid "Video Archives"
 msgstr ""
 
 #: functions.php:522
-msgid "Video Series Attributes"
+msgid "Video Attributes"
 msgstr ""
 
 #: functions.php:523
@@ -173,31 +173,31 @@ msgid "Parent Item:"
 msgstr ""
 
 #: functions.php:524
-msgid "All Video Series"
+msgid "Imported Videos"
 msgstr ""
 
 #: functions.php:525
-msgid "Add New Video Series"
+msgid "Add Videos"
 msgstr ""
 
 #: functions.php:526
-msgid "Add New"
+msgid "Add Videos"
 msgstr ""
 
 #: functions.php:527
-msgid "New Video Series"
+msgid "New Video"
 msgstr ""
 
 #: functions.php:528
-msgid "Edit Video Series"
+msgid "Edit Video"
 msgstr ""
 
 #: functions.php:529
-msgid "Update Video Series"
+msgid "Update Video"
 msgstr ""
 
 #: functions.php:530
-msgid "View Video Series"
+msgid "View Video"
 msgstr ""
 
 #: functions.php:531
@@ -205,7 +205,7 @@ msgid "View Items"
 msgstr ""
 
 #: functions.php:532
-msgid "Search Video Series"
+msgid "Search Videos"
 msgstr ""
 
 #: functions.php:533
@@ -241,7 +241,7 @@ msgid "Uploaded to this item"
 msgstr ""
 
 #: functions.php:541
-msgid "Video Series list"
+msgid "Videos list"
 msgstr ""
 
 #: functions.php:542
@@ -249,11 +249,11 @@ msgid "Items list navigation"
 msgstr ""
 
 #: functions.php:543
-msgid "Filter Video Series list"
+msgid "Filter videos list"
 msgstr ""
 
 #: functions.php:547
-msgid "Posts that show a series of videos"
+msgid "Posts that show a playlist of videos"
 msgstr ""
 
 #. Template Name of the theme
@@ -266,7 +266,7 @@ msgstr ""
 
 #: taxonomy-list_in-popular.php:53
 #: taxonomy-list_in.php:48
-#: template-parts/video_series-poop.php:42
+#: template-parts/video_series-card.php:42
 #, php-format
 msgid "%s video in series"
 msgid_plural "%s videos in series"

@@ -1918,6 +1918,9 @@ $menu_icon   = $assets_base . 'menu.svg';
 		}
 		const wasOpen = nav.getAttribute('data-menu-open') === '1';
 		if (!wasOpen) {
+			if (typeof window.eluminatePrepareMenuOpen === 'function') {
+				window.eluminatePrepareMenuOpen();
+			}
 			logo.classList.add('is-expanded');
 			triggerLogoMenuFlare(logo);
 			const img = document.querySelector('.body-header .logo img');
@@ -1932,22 +1935,29 @@ $menu_icon   = $assets_base . 'menu.svg';
 				};
 			}
 			nav.setAttribute('data-menu-open', '1');
-			startNavOrbitShellControlsEnter();
-			const hub = document.getElementById('orbit-hub');
-			if (hub && !reduceMotion) {
-				hub.classList.remove('orbit-hub--enter');
-				void hub.offsetWidth;
-				hub.classList.add('orbit-hub--enter');
-				hub.addEventListener('animationend', function onOrbitHubEnterEnd(e) {
-					if (e.target !== hub || e.animationName !== 'orbit-hub-menu-enter') {
-						return;
-					}
+			const runOpenUi = function () {
+				startNavOrbitShellControlsEnter();
+				const hub = document.getElementById('orbit-hub');
+				if (hub && !reduceMotion) {
 					hub.classList.remove('orbit-hub--enter');
-					hub.removeEventListener('animationend', onOrbitHubEnterEnd);
-				});
+					void hub.offsetWidth;
+					hub.classList.add('orbit-hub--enter');
+					hub.addEventListener('animationend', function onOrbitHubEnterEnd(e) {
+						if (e.target !== hub || e.animationName !== 'orbit-hub-menu-enter') {
+							return;
+						}
+						hub.classList.remove('orbit-hub--enter');
+						hub.removeEventListener('animationend', onOrbitHubEnterEnd);
+					});
+				}
+				syncLogoGraphicForNavState(logoPrefreezeSnap);
+				renderMainHubOrbit();
+			};
+			if (typeof window.eluminateAfterMenuChromeReady === 'function') {
+				window.eluminateAfterMenuChromeReady(runOpenUi);
+			} else {
+				runOpenUi();
 			}
-			syncLogoGraphicForNavState(logoPrefreezeSnap);
-			renderMainHubOrbit();
 		} else {
 			closeFullNav();
 		}
@@ -2111,6 +2121,134 @@ $menu_icon   = $assets_base . 'menu.svg';
 		<span class="nav-orbit__close-label"><?php echo esc_html__( 'close', 'eluminate-standalone' ); ?></span>
 	</button>
 </div>
+<script>
+	(function initMenuViewportAndScrollLock() {
+		const root = document.documentElement;
+		let lockedScrollY = 0;
+		let menuScrollLocked = false;
+		let vvListenersBound = false;
+
+		function isMenuUiOpen() {
+			const nav = document.getElementById('body-nav');
+			if (!nav) {
+				return false;
+			}
+			if (nav.getAttribute('data-menu-open') === '1') {
+				return true;
+			}
+			const selected = nav.getAttribute('data-selected') || '';
+			return selected !== '';
+		}
+
+		function syncMenuVisualViewport() {
+			const vv = window.visualViewport;
+			if (!vv) {
+				root.style.removeProperty('--menu-vv-height');
+				root.style.removeProperty('--menu-vv-offset-top');
+				return;
+			}
+			root.style.setProperty('--menu-vv-height', `${Math.round(vv.height)}px`);
+			root.style.setProperty('--menu-vv-offset-top', `${Math.round(vv.offsetTop)}px`);
+		}
+
+		function bindVisualViewportListeners() {
+			if (vvListenersBound || !window.visualViewport) {
+				return;
+			}
+			vvListenersBound = true;
+			const onVvChange = function () {
+				if (!isMenuUiOpen()) {
+					return;
+				}
+				syncMenuVisualViewport();
+			};
+			window.visualViewport.addEventListener('resize', onVvChange);
+			window.visualViewport.addEventListener('scroll', onVvChange);
+		}
+
+		function lockMenuScroll() {
+			lockedScrollY = window.scrollY || root.scrollTop || 0;
+			syncMenuVisualViewport();
+			bindVisualViewportListeners();
+			root.classList.add('eluminate-menu-scroll-lock');
+			document.body.style.width = '100%';
+			document.body.style.top = `-${lockedScrollY}px`;
+			document.body.style.position = 'fixed';
+			window.requestAnimationFrame(function () {
+				window.requestAnimationFrame(syncMenuVisualViewport);
+			});
+		}
+
+		function unlockMenuScroll() {
+			root.classList.remove('eluminate-menu-scroll-lock');
+			document.body.style.removeProperty('position');
+			document.body.style.removeProperty('top');
+			document.body.style.removeProperty('width');
+			root.style.removeProperty('--menu-vv-height');
+			root.style.removeProperty('--menu-vv-offset-top');
+			window.scrollTo(0, lockedScrollY);
+			lockedScrollY = 0;
+		}
+
+		function onMenuOpenChange(open) {
+			if (open && !menuScrollLocked) {
+				menuScrollLocked = true;
+				lockMenuScroll();
+				return;
+			}
+			if (!open && menuScrollLocked) {
+				menuScrollLocked = false;
+				unlockMenuScroll();
+				return;
+			}
+			if (open) {
+				syncMenuVisualViewport();
+			}
+		}
+
+		window.eluminatePrepareMenuOpen = function () {
+			syncMenuVisualViewport();
+			if (!menuScrollLocked) {
+				menuScrollLocked = true;
+				lockMenuScroll();
+			}
+		};
+		window.eluminateSyncMenuVisualViewport = syncMenuVisualViewport;
+		window.eluminateAfterMenuChromeReady = function (callback) {
+			window.requestAnimationFrame(function () {
+				window.requestAnimationFrame(function () {
+					syncMenuVisualViewport();
+					if (typeof callback === 'function') {
+						callback();
+					}
+				});
+			});
+		};
+
+		const nav = document.getElementById('body-nav');
+		if (nav) {
+			const observer = new MutationObserver(function () {
+				onMenuOpenChange(isMenuUiOpen());
+			});
+			observer.observe(nav, {
+				attributes: true,
+				attributeFilter: ['data-menu-open', 'data-selected'],
+			});
+			if (isMenuUiOpen()) {
+				onMenuOpenChange(true);
+			}
+		}
+
+		window.addEventListener('orientationchange', function () {
+			if (!isMenuUiOpen()) {
+				return;
+			}
+			window.requestAnimationFrame(function () {
+				window.requestAnimationFrame(syncMenuVisualViewport);
+			});
+		});
+	})();
+</script>
 <script>
 	(function () {
 		const nav = document.getElementById('body-nav');

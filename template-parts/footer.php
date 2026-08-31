@@ -8,8 +8,12 @@
 	}
 	?>
 	<div class="logos">
-		<?php get_template_part( 'assets/soroptimist-international-of-novato-logo-mono' ); ?>
-		<?php get_template_part( 'assets/soroptimist-international-logo-mono' ); ?>
+		<a class="logos__link" href="https://www.soropnovato.org" target="_blank" rel="noopener noreferrer" aria-label="<?php echo esc_attr__( 'Soroptimist International of Novato', 'eluminate-standalone' ); ?>">
+			<?php get_template_part( 'assets/soroptimist-international-of-novato-logo-mono' ); ?>
+		</a>
+		<a class="logos__link" href="https://www.soroptimistinternational.org" target="_blank" rel="noopener noreferrer" aria-label="<?php echo esc_attr__( 'Soroptimist International', 'eluminate-standalone' ); ?>">
+			<?php get_template_part( 'assets/soroptimist-international-logo-mono' ); ?>
+		</a>
 	</div>
 	<p class="copyright">&copy; <?php echo gmdate( 'Y' ); ?> Soroptimist International of Novato </p>
 	<?php

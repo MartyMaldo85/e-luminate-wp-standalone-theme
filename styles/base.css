@@ -16,6 +16,9 @@
 	--slab-font: "Roboto Slab";
 	/* Shared with block-editor H1 (UA default at 18px root ≈ 2em). */
 	--heading-h1-size: 2em;
+	/* Set from layout-nav.js (visualViewport) while the orbit menu is open on touch browsers. */
+	--menu-vv-height: 100dvh;
+	--menu-vv-offset-top: 0px;
 }
 
 html {
@@ -156,6 +159,23 @@ p:not(:last-child) {
 
 .entry-content p:not(:last-child) {
 	margin-bottom: 1em;
+}
+
+.entry-content :is(ul, ol) {
+	margin: 0 0 1em;
+	padding-inline-start: 2em;
+}
+
+.entry-content ul {
+	list-style-type: disc;
+}
+
+.entry-content ol {
+	list-style-type: decimal;
+}
+
+.entry-content :is(ul, ol) :is(ul, ol) {
+	margin-block: 0.25em 0;
 }
 
 .entry-content .video-series-entry p:not(:last-child) {

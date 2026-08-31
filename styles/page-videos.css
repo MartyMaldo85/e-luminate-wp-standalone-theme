@@ -10,26 +10,26 @@
 }
 
 /* Singular hero iframe follows normal in-flow content width (respects panel/grid gutters). */
-.layout-body.type-video_series .video-entry.first > .video-iframe {
+.layout-body.type-videos .video-entry.first > .video-iframe {
 	margin-inline: 0;
 	max-width: 100%;
 	width: 100%;
 }
 
-.layout-body.type-video_series .video-entry.first > .video-iframe:focus,
-.layout-body.type-video_series .video-entry.first > .video-iframe:focus-visible {
+.layout-body.type-videos .video-entry.first > .video-iframe:focus,
+.layout-body.type-videos .video-entry.first > .video-iframe:focus-visible {
 	outline: none;
 }
 
 /* If the hero is a linked thumbnail instead of an iframe, keep the same in-flow width. */
-.layout-body.type-video_series .video-entry.first > a:has(.video-entry-thumbnail) {
+.layout-body.type-videos .video-entry.first > a:has(.video-entry-thumbnail) {
 	margin-inline: 0;
 	max-width: 100%;
 	width: 100%;
 }
 
-.layout-body.type-video_series .video-entry.first > a:has(.video-entry-thumbnail):focus,
-.layout-body.type-video_series .video-entry.first > a:has(.video-entry-thumbnail):focus-visible {
+.layout-body.type-videos .video-entry.first > a:has(.video-entry-thumbnail):focus,
+.layout-body.type-videos .video-entry.first > a:has(.video-entry-thumbnail):focus-visible {
 	outline: none;
 }
 
@@ -91,17 +91,17 @@
 	outline: none;
 }
 
-.layout-body.type-video_series .video-entry.first {
+.layout-body.type-videos .video-entry.first {
 	margin-bottom: 0;
 	min-width: 0;
 }
 
 /*
- * Singular video_series is a vertical stack (title, editor body, hero iframe, more clips, tags).
+ * Singular videos is a vertical stack (title, editor body, hero iframe, more clips, tags).
  * A two-column grid auto-placed `.entry-content` in column 1 only, leaving an empty second column
  * so the hero video felt shifted / padded unevenly vs the white panel.
  */
-.layout-body.type-video_series .page-main {
+.layout-body.type-videos .page-main {
 	box-sizing: border-box;
 	display: grid;
 	gap: 1rem;
@@ -109,7 +109,7 @@
 	min-width: 0;
 }
 
-.layout-body.type-video_series .page-main .main-title {
+.layout-body.type-videos .page-main .main-title {
 	margin-block-start: 0;
 }
 

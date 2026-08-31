@@ -1,17 +1,8 @@
 <?php //phpcs:disable WordPress.Files.FileName.NotHyphenatedLowercase
 /**
- * Template Name: Video Series Component
+ * Video series card (thumbnail, title, optional description and count).
  *
- * Template Post Type: video_series
- *
- * Renders the template for a singular video_series.
- *
- * @category   Theme
  * @package eluminate-standalone
- * @author     Nazario A. Ayala <nazario@niztech.com>
- * @license    opensource.org MIT License
- * @link       https://www.niztech.com
- * @since      0.0.1
  */
 
 if ( ! empty( $args['video'] ) ) {
@@ -24,10 +15,15 @@ if ( ! empty( $args['video'] ) ) {
 	$card_href   = ! empty( $args['card_href'] ) ? (string) $args['card_href'] : $fallback;
 	if ( ! empty( $args['thumb_url'] ) ) {
 		$thumb_src = (string) $args['thumb_url'];
+	} elseif ( function_exists( 'eluminate_standalone_get_video_thumbnail_url' ) ) {
+		$thumb_src = eluminate_standalone_get_video_thumbnail_url( $args['video'] );
 	} elseif ( empty( $args['video']->thumbnail_standard_url ) ) {
 		$thumb_src = $path_generic;
 	} else {
 		$thumb_src = (string) $args['video']->thumbnail_standard_url;
+	}
+	if ( '' === $thumb_src ) {
+		$thumb_src = $path_generic;
 	}
 
 	printf(

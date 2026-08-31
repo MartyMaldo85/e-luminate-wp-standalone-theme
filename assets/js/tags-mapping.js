@@ -1,6 +1,6 @@
 /**
  * Insert/remove [eluminate-videos tag_slug="…"] shortcode blocks when
- * List in Section mapping checkboxes are toggled in the page editor.
+ * Tags mapping checkboxes are toggled in the page editor.
  */
 (function () {
 	'use strict';
@@ -12,13 +12,17 @@
 	}
 
 	function hasBlockEditor() {
-		return !!(
-			window.wp &&
-			wp.data &&
-			wp.blocks &&
-			wp.data.select('core/block-editor') &&
-			wp.data.dispatch('core/block-editor')
-		);
+		try {
+			return !!(
+				window.wp &&
+				wp.data &&
+				wp.blocks &&
+				wp.data.select('core/block-editor') &&
+				wp.data.dispatch('core/block-editor')
+			);
+		} catch (e) {
+			return false;
+		}
 	}
 
 	function textMatchesVideosShortcode(text, slug, termId) {
@@ -227,7 +231,7 @@
 			if (
 				!(target instanceof HTMLInputElement) ||
 				target.type !== 'checkbox' ||
-				!target.classList.contains('eluminate-list-in-term-checkbox')
+				!target.classList.contains('eluminate-tags-term-checkbox')
 			) {
 				return;
 			}
@@ -254,7 +258,7 @@
 			return;
 		}
 		var inputs = document.querySelectorAll(
-			'.eluminate-list-in-term-checkbox'
+			'.eluminate-tags-term-checkbox'
 		);
 		if (!inputs.length) {
 			return;
@@ -320,13 +324,31 @@
 		});
 	}
 
-	if (document.readyState === 'loading') {
-		document.addEventListener('DOMContentLoaded', function () {
-			bindCheckboxes();
-			bindBlockEditorMirror();
-		});
-	} else {
+	function initTagsMapping() {
 		bindCheckboxes();
-		bindBlockEditorMirror();
+		if (!window.wp || !wp.domReady) {
+			bindBlockEditorMirror();
+			return;
+		}
+		wp.domReady(function () {
+			if (hasBlockEditor()) {
+				bindBlockEditorMirror();
+				return;
+			}
+			if (!wp.data || !wp.data.subscribe) {
+				return;
+			}
+			var unsubscribe = wp.data.subscribe(function () {
+				if (!hasBlockEditor()) {
+					return;
+				}
+				if (typeof unsubscribe === 'function') {
+					unsubscribe();
+				}
+				bindBlockEditorMirror();
+			});
+		});
 	}
+
+	initTagsMapping();
 })();

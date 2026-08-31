@@ -86,6 +86,25 @@ body:has(#body-nav[data-selected]:not([data-selected=""])) {
 	transition: none;
 }
 
+/* Touch: avoid translateY enter — iOS misaligns fixed-element hit targets vs paint when body is scroll-locked. */
+@keyframes nav-orbit-shell-control-enter-fade {
+	from {
+		opacity: 0;
+	}
+
+	to {
+		opacity: 1;
+	}
+}
+
+@media (hover: none) and (pointer: coarse) {
+	.nav-orbit-shell.nav-orbit-shell--enter .nav-orbit__home,
+	.nav-orbit-shell.nav-orbit-shell--enter .nav-orbit__close {
+		animation: nav-orbit-shell-control-enter-fade 0.48s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+		transform: none;
+	}
+}
+
 /* Logo-open shell: invisible slide only (toggle hidden until submenu). */
 @keyframes nav-orbit-shell-menu-toggle-enter {
 	from {
@@ -264,6 +283,15 @@ body:has(#body-nav[data-hide-site-logo="1"]) .nav-orbit__menu-toggle.nav-orbit__
 	/* `left` (not `right`) so `left` can animate at the 800px cluster breakpoint. */
 	left: calc(100vw - 4rem - max(1rem, env(safe-area-inset-right, 0px)));
 	right: auto;
+}
+
+/*
+ * iOS Safari: fixed chrome must track visualViewport offset (--menu-vv-*) while scroll-locked.
+ */
+body:has(#body-nav[data-menu-open="1"]) .nav-orbit__home,
+body:has(#body-nav[data-menu-open="1"]) .nav-orbit__close,
+body:has(#body-nav[data-menu-open="1"]) .nav-orbit__menu-toggle {
+	top: calc(var(--menu-vv-offset-top, 0px) + max(1rem, env(safe-area-inset-top, 0px)));
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -994,6 +1022,15 @@ body:has(#body-nav[data-selected="page-submenu"]) .header-logo-cluster .orbit-su
 		top: calc(100svh - 5.25rem - max(0.5rem, env(safe-area-inset-bottom, 0px)));
 	}
 
+	body:has(#body-nav[data-menu-open="1"]) .nav-orbit__home,
+	body:has(#body-nav[data-menu-open="1"]) .nav-orbit__close,
+	body:has(#body-nav[data-menu-open="1"]) .nav-orbit__menu-toggle {
+		top: calc(
+			var(--menu-vv-offset-top, 0px) + var(--menu-vv-height, 100svh) - 5.25rem -
+				max(0.5rem, env(safe-area-inset-bottom, 0px))
+		);
+	}
+
 	.nav-orbit__close {
 		left: calc(100vw - 4rem - max(0.75rem, env(safe-area-inset-right, 0px)));
 		right: auto;
@@ -1105,14 +1142,17 @@ body:has(#body-nav[data-selected="page-submenu"]) .header-logo-cluster .orbit-su
 	body:has(#body-nav[data-menu-open="1"]) .header-logo-cluster {
 		box-sizing: border-box;
 		grid-column: 1 / -1;
+		height: var(--menu-vv-height, 100dvh);
+		inset: auto;
+		left: 0;
 		margin: 0;
 		max-width: none;
-		min-height: 100svh;
-		min-height: 100dvh;
+		min-height: 0;
 		padding-block: env(safe-area-inset-top, 0px) env(safe-area-inset-bottom, 0px);
 		pointer-events: none;
 		position: fixed;
-		inset: 0;
+		right: 0;
+		top: var(--menu-vv-offset-top, 0px);
 		/* No transform here — keeps fixed spin pane tied to the real viewport for centering. */
 		width: 100%;
 		z-index: 200;
@@ -1174,7 +1214,7 @@ body:has(#body-nav[data-selected="page-submenu"]) .header-logo-cluster .orbit-su
 			var(--spin-dock-edge) + 0.5 * var(--menu-dock-scale) * var(--spin-orbit-size) -
 				0.5 * var(--spin-dock-size)
 		);
-		top: 50%;
+		top: calc(var(--menu-vv-offset-top, 0px) + var(--menu-vv-height, 100dvh) * 0.5);
 		transform: translateY(-50%) rotate(90deg) scale(var(--menu-dock-scale));
 		transform-origin: 50% 50%;
 		width: var(--spin-dock-size);
@@ -1209,6 +1249,83 @@ body:has(#body-nav[data-selected="page-submenu"]) .header-logo-cluster .orbit-su
 
 	body:has(#body-nav[data-menu-open="1"]) .header-logo-cluster .orbit-hub .btn-orbit {
 		transform: translate(-50%, -50%) rotate(var(--orbit-a)) translateY(calc(-1 * (var(--orbit-r) + var(--orbit-raise)))) rotate(calc(-1 * var(--orbit-a))) scale(var(--orbit-hover-scale)) rotate(-90deg);
+	}
+}
+
+/*
+ * Landscape phones (short viewport, wider than portrait dock): center orbit on the visible
+ * viewport without the portrait 90° dock rotation. Uses --menu-vv-* from layout-nav.js.
+ */
+@media (max-height: 480px) and (min-width: 481px) {
+	body:has(#body-nav[data-menu-open="1"]) {
+		--menu-landscape-orbit-size: min(
+			calc(var(--menu-vv-height, 100dvh) - 2 * var(--orbit-viewport-inline-gap, 1rem) - 3rem),
+			calc(100vw - 2 * var(--orbit-viewport-inline-gap, 1rem) - 8rem),
+			28rem
+		);
+	}
+
+	body:has(#body-nav[data-menu-open="1"]) .header-logo-cluster {
+		box-sizing: border-box;
+		height: var(--menu-vv-height, 100dvh);
+		inset: auto;
+		left: 0;
+		margin: 0;
+		max-width: none;
+		min-height: 0;
+		pointer-events: none;
+		position: fixed;
+		right: 0;
+		top: var(--menu-vv-offset-top, 0px);
+		width: 100%;
+		z-index: 200;
+	}
+
+	body:has(#body-nav[data-menu-open="1"]) .header-logo-cluster__spin-pane {
+		aspect-ratio: 1;
+		box-sizing: border-box;
+		left: 50%;
+		max-height: var(--menu-landscape-orbit-size);
+		max-width: var(--menu-landscape-orbit-size);
+		pointer-events: auto;
+		position: fixed;
+		top: calc(var(--menu-vv-offset-top, 0px) + var(--menu-vv-height, 100dvh) * 0.5);
+		touch-action: none;
+		transform: translate(-50%, -50%);
+		width: var(--menu-landscape-orbit-size);
+		z-index: 201;
+	}
+
+	body:has(#body-nav[data-menu-open="1"]) .header-logo-cluster__spin-pane .body-header {
+		left: 50%;
+		margin: 0;
+		position: absolute;
+		text-align: center;
+		top: 50%;
+		transform: translate(-50%, -50%);
+		transform-origin: center center;
+		width: 100%;
+		z-index: 2;
+	}
+
+	body:has(#body-nav[data-menu-open="1"]) .header-logo-cluster__spin-pane .body-header .logo {
+		margin: 0 auto;
+		transform: none;
+		width: min(180px, 42vw);
+	}
+
+	body:has(#body-nav[data-menu-open="1"]) .header-logo-cluster .orbit-hub,
+	body:has(#body-nav[data-menu-open="1"]) .header-logo-cluster .orbit-submenu {
+		--orbit-r: max(
+			6rem,
+			calc(
+				0.5 * var(--menu-landscape-orbit-size) - var(--orbit-viewport-inline-gap, 1rem) - clamp(2rem, 9vmin, 3rem)
+			)
+		);
+		left: 50%;
+		max-height: var(--menu-landscape-orbit-size);
+		max-width: var(--menu-landscape-orbit-size);
+		width: var(--menu-landscape-orbit-size);
 	}
 }
 

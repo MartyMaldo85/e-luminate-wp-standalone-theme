@@ -19,7 +19,7 @@
 		"extends @wordpress/browserslist-config"
 	],
 	"scripts": {
-		"dev": "browser-sync start --proxy \"http://localhost:8888/wordpress/\" --files \"**/*\" --ignore \"node_modules/**,.git/**,vendor/**,*.log\"",
-		"dev:bs": "browser-sync start --proxy \"http://localhost:8888/wordpress/\" --files \"**/*\" --ignore \"node_modules/**,.git/**,vendor/**,*.log\""
+		"dev": "browser-sync start --config bs-config.js",
+		"dev:bs": "browser-sync start --config bs-config.js"
 	}
 }

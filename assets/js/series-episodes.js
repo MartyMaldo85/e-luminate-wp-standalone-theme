@@ -1,5 +1,5 @@
 /**
- * On-site playlist episode switching for singular video_series pages.
+ * On-site playlist episode switching for singular videos pages.
  * Updates the main iframe without leaving for youtube.com.
  * Uses replaceState so Back/Forward leave the series page (no per-episode history).
  */

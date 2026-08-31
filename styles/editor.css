@@ -61,3 +61,21 @@ p {
 p:not(:last-child) {
 	margin-bottom: 1em;
 }
+
+ul,
+ol {
+	margin: 0 0 1em;
+	padding-inline-start: 2em;
+}
+
+ul {
+	list-style-type: disc;
+}
+
+ol {
+	list-style-type: decimal;
+}
+
+:is(ul, ol) :is(ul, ol) {
+	margin-block: 0.25em 0;
+}
